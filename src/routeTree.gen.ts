@@ -17,6 +17,7 @@ import { Route as FriendsRouteImport } from './routes/friends'
 import { Route as LearnRouteImport } from './routes/learn'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ProgressRouteImport } from './routes/progress'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TerminalRouteImport } from './routes/terminal'
 import { Route as TutorRouteImport } from './routes/tutor'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
@@ -63,6 +64,11 @@ const ProgressRoute = ProgressRouteImport.update({
   path: '/progress',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TerminalRoute = TerminalRouteImport.update({
   id: '/terminal',
   path: '/terminal',
@@ -98,6 +104,7 @@ export interface FileRoutesByFullPath {
   '/learn': typeof LearnRoute
   '/profile': typeof ProfileRoute
   '/progress': typeof ProgressRoute
+  '/settings': typeof SettingsRoute
   '/terminal': typeof TerminalRoute
   '/tutor': typeof TutorRoute
   '/auth/login': typeof AuthLoginRoute
@@ -113,6 +120,7 @@ export interface FileRoutesByTo {
   '/learn': typeof LearnRoute
   '/profile': typeof ProfileRoute
   '/progress': typeof ProgressRoute
+  '/settings': typeof SettingsRoute
   '/terminal': typeof TerminalRoute
   '/tutor': typeof TutorRoute
   '/auth/login': typeof AuthLoginRoute
@@ -129,6 +137,7 @@ export interface FileRoutesById {
   '/learn': typeof LearnRoute
   '/profile': typeof ProfileRoute
   '/progress': typeof ProgressRoute
+  '/settings': typeof SettingsRoute
   '/terminal': typeof TerminalRoute
   '/tutor': typeof TutorRoute
   '/auth/login': typeof AuthLoginRoute
@@ -146,6 +155,7 @@ export interface FileRouteTypes {
     | '/learn'
     | '/profile'
     | '/progress'
+    | '/settings'
     | '/terminal'
     | '/tutor'
     | '/auth/login'
@@ -161,6 +171,7 @@ export interface FileRouteTypes {
     | '/learn'
     | '/profile'
     | '/progress'
+    | '/settings'
     | '/terminal'
     | '/tutor'
     | '/auth/login'
@@ -176,6 +187,7 @@ export interface FileRouteTypes {
     | '/learn'
     | '/profile'
     | '/progress'
+    | '/settings'
     | '/terminal'
     | '/tutor'
     | '/auth/login'
@@ -192,6 +204,7 @@ export interface RootRouteChildren {
   LearnRoute: typeof LearnRoute
   ProfileRoute: typeof ProfileRoute
   ProgressRoute: typeof ProgressRoute
+  SettingsRoute: typeof SettingsRoute
   TerminalRoute: typeof TerminalRoute
   TutorRoute: typeof TutorRoute
   AuthLoginRoute: typeof AuthLoginRoute
@@ -257,6 +270,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProgressRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/terminal': {
       id: '/terminal'
       path: '/terminal'
@@ -304,6 +324,7 @@ const rootRouteChildren: RootRouteChildren = {
   LearnRoute: LearnRoute,
   ProfileRoute: ProfileRoute,
   ProgressRoute: ProgressRoute,
+  SettingsRoute: SettingsRoute,
   TerminalRoute: TerminalRoute,
   TutorRoute: TutorRoute,
   AuthLoginRoute: AuthLoginRoute,
