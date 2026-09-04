@@ -10,9 +10,12 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AchievementsRouteImport } from './routes/achievements'
 import { Route as ChallengesRouteImport } from './routes/challenges'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as FriendsRouteImport } from './routes/friends'
 import { Route as LearnRouteImport } from './routes/learn'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ProgressRouteImport } from './routes/progress'
 import { Route as TerminalRouteImport } from './routes/terminal'
 import { Route as TutorRouteImport } from './routes/tutor'
@@ -25,6 +28,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AchievementsRoute = AchievementsRouteImport.update({
+  id: '/achievements',
+  path: '/achievements',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ChallengesRoute = ChallengesRouteImport.update({
   id: '/challenges',
   path: '/challenges',
@@ -35,9 +43,19 @@ const DashboardRoute = DashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FriendsRoute = FriendsRouteImport.update({
+  id: '/friends',
+  path: '/friends',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LearnRoute = LearnRouteImport.update({
   id: '/learn',
   path: '/learn',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProgressRoute = ProgressRouteImport.update({
@@ -73,9 +91,12 @@ const AuthSignupRoute = AuthSignupRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/achievements': typeof AchievementsRoute
   '/challenges': typeof ChallengesRoute
   '/dashboard': typeof DashboardRoute
+  '/friends': typeof FriendsRoute
   '/learn': typeof LearnRoute
+  '/profile': typeof ProfileRoute
   '/progress': typeof ProgressRoute
   '/terminal': typeof TerminalRoute
   '/tutor': typeof TutorRoute
@@ -85,9 +106,12 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/achievements': typeof AchievementsRoute
   '/challenges': typeof ChallengesRoute
   '/dashboard': typeof DashboardRoute
+  '/friends': typeof FriendsRoute
   '/learn': typeof LearnRoute
+  '/profile': typeof ProfileRoute
   '/progress': typeof ProgressRoute
   '/terminal': typeof TerminalRoute
   '/tutor': typeof TutorRoute
@@ -98,9 +122,12 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/achievements': typeof AchievementsRoute
   '/challenges': typeof ChallengesRoute
   '/dashboard': typeof DashboardRoute
+  '/friends': typeof FriendsRoute
   '/learn': typeof LearnRoute
+  '/profile': typeof ProfileRoute
   '/progress': typeof ProgressRoute
   '/terminal': typeof TerminalRoute
   '/tutor': typeof TutorRoute
@@ -112,9 +139,12 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/achievements'
     | '/challenges'
     | '/dashboard'
+    | '/friends'
     | '/learn'
+    | '/profile'
     | '/progress'
     | '/terminal'
     | '/tutor'
@@ -124,9 +154,12 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/achievements'
     | '/challenges'
     | '/dashboard'
+    | '/friends'
     | '/learn'
+    | '/profile'
     | '/progress'
     | '/terminal'
     | '/tutor'
@@ -136,9 +169,12 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/achievements'
     | '/challenges'
     | '/dashboard'
+    | '/friends'
     | '/learn'
+    | '/profile'
     | '/progress'
     | '/terminal'
     | '/tutor'
@@ -149,9 +185,12 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AchievementsRoute: typeof AchievementsRoute
   ChallengesRoute: typeof ChallengesRoute
   DashboardRoute: typeof DashboardRoute
+  FriendsRoute: typeof FriendsRoute
   LearnRoute: typeof LearnRoute
+  ProfileRoute: typeof ProfileRoute
   ProgressRoute: typeof ProgressRoute
   TerminalRoute: typeof TerminalRoute
   TutorRoute: typeof TutorRoute
@@ -169,6 +208,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/achievements': {
+      id: '/achievements'
+      path: '/achievements'
+      fullPath: '/achievements'
+      preLoaderRoute: typeof AchievementsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/challenges': {
       id: '/challenges'
       path: '/challenges'
@@ -183,11 +229,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/friends': {
+      id: '/friends'
+      path: '/friends'
+      fullPath: '/friends'
+      preLoaderRoute: typeof FriendsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/learn': {
       id: '/learn'
       path: '/learn'
       fullPath: '/learn'
       preLoaderRoute: typeof LearnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/progress': {
@@ -237,9 +297,12 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AchievementsRoute: AchievementsRoute,
   ChallengesRoute: ChallengesRoute,
   DashboardRoute: DashboardRoute,
+  FriendsRoute: FriendsRoute,
   LearnRoute: LearnRoute,
+  ProfileRoute: ProfileRoute,
   ProgressRoute: ProgressRoute,
   TerminalRoute: TerminalRoute,
   TutorRoute: TutorRoute,
