@@ -13,6 +13,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ChallengesRouteImport } from './routes/challenges'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as LearnRouteImport } from './routes/learn'
+import { Route as ProgressRouteImport } from './routes/progress'
+import { Route as TerminalRouteImport } from './routes/terminal'
+import { Route as TutorRouteImport } from './routes/tutor'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AuthResetRouteImport } from './routes/auth.reset'
 import { Route as AuthSignupRouteImport } from './routes/auth.signup'
@@ -37,6 +40,21 @@ const LearnRoute = LearnRouteImport.update({
   path: '/learn',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProgressRoute = ProgressRouteImport.update({
+  id: '/progress',
+  path: '/progress',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TerminalRoute = TerminalRouteImport.update({
+  id: '/terminal',
+  path: '/terminal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TutorRoute = TutorRouteImport.update({
+  id: '/tutor',
+  path: '/tutor',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthLoginRoute = AuthLoginRouteImport.update({
   id: '/auth/login',
   path: '/auth/login',
@@ -58,6 +76,9 @@ export interface FileRoutesByFullPath {
   '/challenges': typeof ChallengesRoute
   '/dashboard': typeof DashboardRoute
   '/learn': typeof LearnRoute
+  '/progress': typeof ProgressRoute
+  '/terminal': typeof TerminalRoute
+  '/tutor': typeof TutorRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/reset': typeof AuthResetRoute
   '/auth/signup': typeof AuthSignupRoute
@@ -67,6 +88,9 @@ export interface FileRoutesByTo {
   '/challenges': typeof ChallengesRoute
   '/dashboard': typeof DashboardRoute
   '/learn': typeof LearnRoute
+  '/progress': typeof ProgressRoute
+  '/terminal': typeof TerminalRoute
+  '/tutor': typeof TutorRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/reset': typeof AuthResetRoute
   '/auth/signup': typeof AuthSignupRoute
@@ -77,6 +101,9 @@ export interface FileRoutesById {
   '/challenges': typeof ChallengesRoute
   '/dashboard': typeof DashboardRoute
   '/learn': typeof LearnRoute
+  '/progress': typeof ProgressRoute
+  '/terminal': typeof TerminalRoute
+  '/tutor': typeof TutorRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/reset': typeof AuthResetRoute
   '/auth/signup': typeof AuthSignupRoute
@@ -88,6 +115,9 @@ export interface FileRouteTypes {
     | '/challenges'
     | '/dashboard'
     | '/learn'
+    | '/progress'
+    | '/terminal'
+    | '/tutor'
     | '/auth/login'
     | '/auth/reset'
     | '/auth/signup'
@@ -97,6 +127,9 @@ export interface FileRouteTypes {
     | '/challenges'
     | '/dashboard'
     | '/learn'
+    | '/progress'
+    | '/terminal'
+    | '/tutor'
     | '/auth/login'
     | '/auth/reset'
     | '/auth/signup'
@@ -106,6 +139,9 @@ export interface FileRouteTypes {
     | '/challenges'
     | '/dashboard'
     | '/learn'
+    | '/progress'
+    | '/terminal'
+    | '/tutor'
     | '/auth/login'
     | '/auth/reset'
     | '/auth/signup'
@@ -116,6 +152,9 @@ export interface RootRouteChildren {
   ChallengesRoute: typeof ChallengesRoute
   DashboardRoute: typeof DashboardRoute
   LearnRoute: typeof LearnRoute
+  ProgressRoute: typeof ProgressRoute
+  TerminalRoute: typeof TerminalRoute
+  TutorRoute: typeof TutorRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthResetRoute: typeof AuthResetRoute
   AuthSignupRoute: typeof AuthSignupRoute
@@ -151,6 +190,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LearnRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/progress': {
+      id: '/progress'
+      path: '/progress'
+      fullPath: '/progress'
+      preLoaderRoute: typeof ProgressRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terminal': {
+      id: '/terminal'
+      path: '/terminal'
+      fullPath: '/terminal'
+      preLoaderRoute: typeof TerminalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tutor': {
+      id: '/tutor'
+      path: '/tutor'
+      fullPath: '/tutor'
+      preLoaderRoute: typeof TutorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/login': {
       id: '/auth/login'
       path: '/auth/login'
@@ -180,6 +240,9 @@ const rootRouteChildren: RootRouteChildren = {
   ChallengesRoute: ChallengesRoute,
   DashboardRoute: DashboardRoute,
   LearnRoute: LearnRoute,
+  ProgressRoute: ProgressRoute,
+  TerminalRoute: TerminalRoute,
+  TutorRoute: TutorRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthResetRoute: AuthResetRoute,
   AuthSignupRoute: AuthSignupRoute,
