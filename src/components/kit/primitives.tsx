@@ -7,13 +7,16 @@ export function Panel({
   className,
   children,
   padded = true,
+  id,
 }: {
   className?: string;
   children: ReactNode;
   padded?: boolean;
+  id?: string;
 }) {
   return (
     <section
+      id={id}
       className={cn(
         "rounded-xl border border-border bg-card/80 panel-shadow backdrop-blur-sm",
         padded && "p-5",
@@ -81,7 +84,7 @@ export function buttonClass({ variant = "forge", size = "md" }: Omit<BtnProps, "
 }
 
 export function Button({ variant, size, className, ...props }: BtnProps) {
-  return <button className={cn(buttonClass({ variant, size }), className)} {...props} />;
+  return <button className={cn(buttonClass({ variant, size } as BtnProps), className)} {...props} />;
 }
 
 /* ---------- Badges ---------- */
