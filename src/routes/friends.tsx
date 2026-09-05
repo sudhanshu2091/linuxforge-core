@@ -157,7 +157,7 @@ function ComparisonRow({
 
 function FriendPreview({ friend }: { friend: Learner }) {
   const result = dailyResults[friend.id];
-  const mine = dailyResults[demoLearner.id];
+  const mine = dailyResults[demoLearner.id]!;
   return (
     <div className="space-y-6">
       <Panel>

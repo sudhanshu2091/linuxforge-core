@@ -60,7 +60,7 @@ export function ErrorState({
   className,
 }: {
   title?: string;
-  description?: string;
+  description?: string | undefined;
   onRetry?: () => void;
   className?: string;
 }) {

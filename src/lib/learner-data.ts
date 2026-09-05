@@ -114,13 +114,13 @@ export function skillAverage(skills: Skill[]) {
 
 /* ---------- Demo data (labelled in UI as demo / integration-ready) ---------- */
 
-const skills = (values: number[]): Skill[] => [
-  { key: "filesystem", label: "Filesystem", mastery: values[0] },
-  { key: "permissions", label: "Permissions", mastery: values[1] },
-  { key: "processes", label: "Processes", mastery: values[2] },
-  { key: "networking", label: "Networking", mastery: values[3] },
-  { key: "shell-scripting", label: "Shell scripting", mastery: values[4] },
-  { key: "hardening", label: "Hardening", mastery: values[5] },
+const skills = (v: number[]): Skill[] => [
+  { key: "filesystem", label: "Filesystem", mastery: v[0]! },
+  { key: "permissions", label: "Permissions", mastery: v[1]! },
+  { key: "processes", label: "Processes", mastery: v[2]! },
+  { key: "networking", label: "Networking", mastery: v[3]! },
+  { key: "shell-scripting", label: "Shell scripting", mastery: v[4]! },
+  { key: "hardening", label: "Hardening", mastery: v[5]! },
 ];
 
 export const demoLearner: Learner = {
@@ -337,7 +337,7 @@ export async function searchLearnersService(query: string): Promise<FriendReques
 export type AsyncState<T> = {
   data: T | undefined;
   status: "loading" | "success" | "error";
-  error?: string;
+  error?: string | undefined;
   reload: () => void;
 };
 
