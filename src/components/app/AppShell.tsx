@@ -1,37 +1,132 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { Bell, Flame, Menu, Search, Sparkles, X, LogOut } from "lucide-react";
+import { Bell, ChevronDown, Flame, Menu, Search, Sparkles, X, LogOut } from "lucide-react";
 import { Logo } from "@/components/kit/Logo";
 import { FutureTag, Tag, buttonClass } from "@/components/kit/primitives";
-import { navGroups } from "./nav-config";
+import { primaryNav, userMenuNav } from "./nav-config";
+import { demoLearner } from "@/lib/learner-data";
 import { cn } from "@/lib/utils";
 
 function NavList({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav className="space-y-6">
-      {navGroups.map((group) => (
-        <div key={group.title}>
-          <p className="mb-2 px-3 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            {group.title}
-          </p>
-          <ul className="space-y-1">
-            {group.items.map((item) => (
-              <li key={item.to}>
+      <div>
+        <p className="mb-2 px-3 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Forge</p>
+        <ul className="space-y-1">
+          {primaryNav.map((item) => (
+            <li key={item.to}>
+              <Link
+                to={item.to}
+                onClick={onNavigate}
+                className="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-surface hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[status=active]:bg-primary/10 data-[status=active]:text-primary"
+                activeProps={{ className: "font-medium" }}
+              >
+                <item.icon className="size-4 shrink-0" />
+                <span className="truncate">{item.label}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div>
+        <p className="mb-2 px-3 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Account</p>
+        <ul className="space-y-1">
+          {userMenuNav.map((item) => (
+            <li key={item.label}>
+              <Link
+                to={item.to}
+                onClick={onNavigate}
+                className="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-surface hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <item.icon className="size-4 shrink-0" />
+                <span className="truncate">{item.label}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </nav>
+  );
+}
+
+function UserMenu() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className="flex items-center gap-2 rounded-lg border border-border bg-surface/60 py-1 pl-1 pr-2 text-sm transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <span className="flex size-7 items-center justify-center rounded-md bg-surface-2 font-mono text-xs text-primary">
+          {demoLearner.initials}
+        </span>
+        <span className="hidden max-w-28 truncate font-medium sm:inline">{demoLearner.displayName}</span>
+        <ChevronDown className={cn("size-3.5 text-muted-foreground transition-transform", open && "rotate-180")} />
+      </button>
+
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 z-40 mt-2 w-64 overflow-hidden rounded-xl border border-border bg-card/95 panel-shadow backdrop-blur-md"
+        >
+          <div className="border-b border-border px-4 py-3">
+            <p className="truncate text-sm font-semibold">{demoLearner.displayName}</p>
+            <p className="truncate font-mono text-[11px] text-muted-foreground">@{demoLearner.handle}</p>
+            <div className="mt-2 flex items-center gap-2">
+              <Tag tone="primary">{demoLearner.rank}</Tag>
+              <span className="font-mono text-[11px] text-muted-foreground">Lv {demoLearner.level}</span>
+            </div>
+          </div>
+          <ul className="p-1.5">
+            {userMenuNav.map((item) => (
+              <li key={item.label}>
                 <Link
                   to={item.to}
-                  onClick={onNavigate}
-                  className="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-surface hover:text-foreground data-[status=active]:bg-primary/10 data-[status=active]:text-primary"
-                  activeProps={{ className: "font-medium" }}
+                  role="menuitem"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-surface hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  <item.icon className="size-4 shrink-0" />
-                  <span className="truncate">{item.label}</span>
+                  <item.icon className="size-4" />
+                  {item.label}
                 </Link>
               </li>
             ))}
           </ul>
+          <div className="border-t border-border p-1.5">
+            <Link
+              to="/auth/login"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-surface hover:text-foreground"
+            >
+              <LogOut className="size-4" />
+              Sign out
+            </Link>
+            <p className="px-3 pb-1 pt-1 text-[10px] text-muted-foreground">
+              Sign out is a demo action until accounts are wired.
+            </p>
+          </div>
         </div>
-      ))}
-    </nav>
+      )}
+    </div>
   );
 }
 
@@ -54,8 +149,8 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Flame className="size-4 text-primary" />
               <p className="text-xs font-semibold">Forge streak</p>
             </div>
-            <p className="mt-1 font-mono text-lg font-semibold">— days</p>
-            <FutureTag className="mt-2" label="Learner data later" />
+            <p className="mt-1 font-mono text-lg font-semibold">{demoLearner.currentStreak} days</p>
+            <FutureTag className="mt-2" label="Demo · integration-ready" />
           </div>
         </div>
       </aside>
@@ -67,19 +162,32 @@ export function AppShell({ children }: { children: ReactNode }) {
             className="absolute inset-0 bg-background/80 backdrop-blur-sm"
             onClick={() => setMobileOpen(false)}
           />
-          <div className="absolute inset-y-0 left-0 flex w-72 flex-col border-r border-border bg-surface">
+          <div className="absolute inset-y-0 left-0 flex w-[17.5rem] max-w-[85vw] flex-col border-r border-border bg-surface">
             <div className="flex h-16 items-center justify-between border-b border-border px-4">
               <Logo />
               <button
                 aria-label="Close navigation"
                 onClick={() => setMobileOpen(false)}
-                className="rounded-md p-2 text-muted-foreground hover:bg-surface-2"
+                className="rounded-md p-2 text-muted-foreground hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <X className="size-4" />
               </button>
             </div>
+            <div className="border-b border-border px-4 py-3">
+              <p className="truncate text-sm font-semibold">{demoLearner.displayName}</p>
+              <p className="truncate font-mono text-[11px] text-muted-foreground">@{demoLearner.handle}</p>
+            </div>
             <div className="flex-1 overflow-y-auto px-2 py-5">
               <NavList onNavigate={() => setMobileOpen(false)} />
+            </div>
+            <div className="border-t border-border p-2">
+              <Link
+                to="/auth/login"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-surface-2 hover:text-foreground"
+              >
+                <LogOut className="size-4" /> Sign out
+              </Link>
             </div>
           </div>
         </div>
@@ -91,7 +199,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <button
             aria-label="Open navigation"
             onClick={() => setMobileOpen(true)}
-            className="rounded-md p-2 text-muted-foreground hover:bg-surface lg:hidden"
+            className="rounded-md p-2 text-muted-foreground hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
           >
             <Menu className="size-5" />
           </button>
@@ -104,36 +212,25 @@ export function AppShell({ children }: { children: ReactNode }) {
             />
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <Tag tone="signal" className="hidden sm:inline-flex">
+            <Tag tone="signal" className="hidden lg:inline-flex">
               Sandbox only
             </Tag>
-            <Link to="/tutor" className={cn(buttonClass({ variant: "outline", size: "sm" }), "hidden sm:inline-flex")}>
+            <Link
+              to="/tutor"
+              className={cn(buttonClass({ variant: "outline", size: "sm" }), "hidden sm:inline-flex")}
+            >
               <Sparkles className="size-3.5 text-primary" />
               Ask tutor
             </Link>
-            <button
+            <Link
+              to="/notifications"
               aria-label="Notifications"
-              className="relative rounded-lg border border-border bg-surface/60 p-2 text-muted-foreground hover:text-foreground"
+              className="relative rounded-lg border border-border bg-surface/60 p-2 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Bell className="size-4" />
               <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-primary" />
-            </button>
-            <Link
-              to="/profile"
-              className="flex items-center gap-2 rounded-lg border border-border bg-surface/60 py-1 pl-1 pr-3 text-sm hover:bg-surface-2"
-            >
-              <span className="flex size-7 items-center justify-center rounded-md bg-surface-2 font-mono text-xs text-primary">
-                LF
-              </span>
-              <span className="hidden font-medium sm:inline">Guest</span>
             </Link>
-            <Link
-              to="/auth/login"
-              aria-label="Sign out placeholder"
-              className="rounded-lg border border-border bg-surface/60 p-2 text-muted-foreground hover:text-foreground"
-            >
-              <LogOut className="size-4" />
-            </Link>
+            <UserMenu />
           </div>
         </header>
 
