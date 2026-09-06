@@ -56,6 +56,7 @@ export const Route = createFileRoute("/_authenticated/profile")({
 });
 
 function ProfilePage() {
+  const auth = useAuth();
   const learner = useAsync(getLearnerService);
   const [shared, setShared] = useState(false);
 
@@ -64,7 +65,7 @@ function ProfilePage() {
       <PageHeader
         eyebrow="Profile"
         title="Your forge identity"
-        description="A snapshot of what you've actually proved — rank, verified skill mastery and the drills behind them."
+        description="Your account details are live. Progression stays at zero until the learning systems record real results."
         actions={
           <>
             <Link to="/dashboard" className={buttonClass({ variant: "ghost", size: "sm" })}>
@@ -80,16 +81,50 @@ function ProfilePage() {
         }
       />
 
-      {learner.status === "loading" ? <LoadingBlock rows={4} /> : null}
-      {learner.status === "error" ? (
-        <ErrorState description={learner.error} onRetry={learner.reload} />
+      {auth.status === "loading" ? <LoadingBlock rows={4} /> : null}
+      {auth.status === "signed-out" ? (
+        <EmptyState title="You're signed out" description="Sign in again to see your profile." />
+      ) : null}
+      {auth.status === "error" ? (
+        <ErrorState
+          description={auth.error ?? "We couldn't reach your account right now."}
+          onRetry={auth.reload}
+        />
       ) : null}
 
-      {learner.status === "success" && learner.data ? (
+      {auth.status === "ready" && auth.profile ? (
         (() => {
-          const me = learner.data!;
-          const best = strongestSkill(me.skills);
-          const worst = weakestSkill(me.skills);
+          const demo = learner.status === "success" && learner.data ? learner.data : null;
+          const profile = auth.profile!;
+          const me = {
+            displayName: profile.display_name,
+            email: profile.email || auth.user?.email || "",
+            handle: handleFrom(profile, auth.user?.email),
+            initials: initialsFrom(profile.display_name),
+            rank: RANK_LADDER[0]!,
+            level: 1,
+            xp: 0,
+            xpToNextLevel: 1000,
+            currentStreak: 0,
+            longestStreak: 0,
+            labsCompleted: 0,
+            challengesCompleted: 0,
+            bio: null as string | null,
+            location: null as string | null,
+            joinedAt: new Date(profile.created_at).toLocaleDateString(undefined, {
+              month: "short",
+              year: "numeric",
+            }),
+            tutorLanguage: auth.preferences?.preferred_tutor_language ?? "Mix both",
+            comfortLevel: profile.linux_comfort_level,
+            goal: "No learning path started yet.",
+            path: "Not selected",
+            skills: demo?.skills ?? [],
+            personalBests: [] as { id: string; label: string; value: string; detail: string }[],
+            recentBadges: [] as { id: string; label: string; earnedAt: string }[],
+          };
+          const best = me.skills.length ? strongestSkill(me.skills) : null;
+          const worst = me.skills.length ? weakestSkill(me.skills) : null;
           const xpPct = Math.round((me.xp / me.xpToNextLevel) * 100);
           return (
             <>
