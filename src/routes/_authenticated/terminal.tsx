@@ -12,7 +12,7 @@ import {
   buttonClass,
 } from "@/components/kit/primitives";
 
-export const Route = createFileRoute("/terminal")({
+export const Route = createFileRoute("/_authenticated/terminal")({
   head: () => ({
     meta: [
       { title: "Practice Terminal — LinuxForge AI" },

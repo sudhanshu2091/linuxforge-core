@@ -12,7 +12,7 @@ import {
   Tag,
 } from "@/components/kit/primitives";
 
-export const Route = createFileRoute("/progress")({
+export const Route = createFileRoute("/_authenticated/progress")({
   head: () => ({
     meta: [
       { title: "Progress — LinuxForge AI" },

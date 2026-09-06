@@ -12,7 +12,7 @@ import {
   buttonClass,
 } from "@/components/kit/primitives";
 
-export const Route = createFileRoute("/learn")({
+export const Route = createFileRoute("/_authenticated/learn")({
   head: () => ({
     meta: [
       { title: "Learning Paths — LinuxForge AI" },
