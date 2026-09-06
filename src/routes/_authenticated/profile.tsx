@@ -234,37 +234,58 @@ function ProfilePage() {
               <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_340px]">
                 <div className="space-y-6">
                   <Panel>
-                    <PanelHeader title="Skill mastery" subtitle="Derived from lab outcomes, not lesson views" />
-                    <ul className="space-y-3.5">
-                      {me.skills.map((s, i) => (
-                        <li key={s.key}>
-                          <div className="mb-1.5 flex items-center justify-between text-xs">
-                            <span>{s.label}</span>
-                            <span className="font-mono text-muted-foreground">{s.mastery}%</span>
-                          </div>
-                          <ProgressBar value={s.mastery} tone={i % 2 === 0 ? "primary" : "accent"} />
-                        </li>
-                      ))}
-                    </ul>
-                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                      <div className="rounded-lg border border-signal/30 bg-signal/8 p-3">
-                        <p className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-signal">
-                          <TrendingUp className="size-3.5" /> Strongest
-                        </p>
-                        <p className="mt-1 text-sm font-medium">{best.label}</p>
-                        <p className="text-xs text-muted-foreground">{best.mastery}% mastery</p>
-                      </div>
-                      <div className="rounded-lg border border-warn/30 bg-warn/8 p-3">
-                        <p className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-warn">
-                          <TrendingDown className="size-3.5" /> Needs practice
-                        </p>
-                        <p className="mt-1 text-sm font-medium">{worst.label}</p>
-                        <p className="text-xs text-muted-foreground">{worst.mastery}% mastery</p>
-                      </div>
-                    </div>
-                    <Link to="/challenges" className={cn(buttonClass({ variant: "outline", size: "sm" }), "mt-4")}>
-                      Practise {worst.label}
-                    </Link>
+                    <PanelHeader
+                      title="Skill mastery"
+                      subtitle="Preview of the curriculum system — not your recorded results"
+                      actions={<FutureTag label="Demo · curriculum stage" />}
+                    />
+                    {learner.status === "loading" ? <LoadingBlock rows={3} /> : null}
+                    {me.skills.length === 0 ? (
+                      <EmptyState
+                        title="No skill data yet"
+                        description="Mastery appears once the learning and lab systems record real outcomes."
+                      />
+                    ) : (
+                      <>
+                        <ul className="space-y-3.5">
+                          {me.skills.map((s, i) => (
+                            <li key={s.key}>
+                              <div className="mb-1.5 flex items-center justify-between text-xs">
+                                <span>{s.label}</span>
+                                <span className="font-mono text-muted-foreground">{s.mastery}%</span>
+                              </div>
+                              <ProgressBar value={s.mastery} tone={i % 2 === 0 ? "primary" : "accent"} />
+                            </li>
+                          ))}
+                        </ul>
+                        {best && worst ? (
+                          <>
+                            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                              <div className="rounded-lg border border-signal/30 bg-signal/8 p-3">
+                                <p className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-signal">
+                                  <TrendingUp className="size-3.5" /> Strongest
+                                </p>
+                                <p className="mt-1 text-sm font-medium">{best.label}</p>
+                                <p className="text-xs text-muted-foreground">{best.mastery}% mastery</p>
+                              </div>
+                              <div className="rounded-lg border border-warn/30 bg-warn/8 p-3">
+                                <p className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-warn">
+                                  <TrendingDown className="size-3.5" /> Needs practice
+                                </p>
+                                <p className="mt-1 text-sm font-medium">{worst.label}</p>
+                                <p className="text-xs text-muted-foreground">{worst.mastery}% mastery</p>
+                              </div>
+                            </div>
+                            <Link
+                              to="/challenges"
+                              className={cn(buttonClass({ variant: "outline", size: "sm" }), "mt-4")}
+                            >
+                              Practise {worst.label}
+                            </Link>
+                          </>
+                        ) : null}
+                      </>
+                    )}
                   </Panel>
 
                   <Panel>
