@@ -74,6 +74,8 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
 function UserMenu() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const identity = useIdentity();
+  const signOut = useSignOut();
 
   useEffect(() => {
     if (!open) return;
