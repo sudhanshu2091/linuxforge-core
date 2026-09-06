@@ -14,7 +14,78 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      learner_preferences: {
+        Row: {
+          created_at: string
+          id: string
+          notify_achievements: boolean
+          notify_daily_drill: boolean
+          notify_email_digest: boolean
+          notify_squad_activity: boolean
+          notify_streak_risk: boolean
+          preferred_tutor_language: Database["public"]["Enums"]["tutor_language"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notify_achievements?: boolean
+          notify_daily_drill?: boolean
+          notify_email_digest?: boolean
+          notify_squad_activity?: boolean
+          notify_streak_risk?: boolean
+          preferred_tutor_language?: Database["public"]["Enums"]["tutor_language"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notify_achievements?: boolean
+          notify_daily_drill?: boolean
+          notify_email_digest?: boolean
+          notify_squad_activity?: boolean
+          notify_streak_risk?: boolean
+          preferred_tutor_language?: Database["public"]["Enums"]["tutor_language"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      learner_profiles: {
+        Row: {
+          avatar_ref: string | null
+          created_at: string
+          display_name: string
+          email: string
+          id: string
+          linux_comfort_level: Database["public"]["Enums"]["linux_comfort_level"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_ref?: string | null
+          created_at?: string
+          display_name: string
+          email: string
+          id?: string
+          linux_comfort_level?: Database["public"]["Enums"]["linux_comfort_level"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_ref?: string | null
+          created_at?: string
+          display_name?: string
+          email?: string
+          id?: string
+          linux_comfort_level?: Database["public"]["Enums"]["linux_comfort_level"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +94,11 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      linux_comfort_level:
+        | "Total beginner"
+        | "Some terminal time"
+        | "Comfortable, want depth"
+      tutor_language: "English" | "Hinglish" | "Mix both"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +225,13 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      linux_comfort_level: [
+        "Total beginner",
+        "Some terminal time",
+        "Comfortable, want depth",
+      ],
+      tutor_language: ["English", "Hinglish", "Mix both"],
+    },
   },
 } as const
