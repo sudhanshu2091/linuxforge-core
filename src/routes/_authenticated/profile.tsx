@@ -5,8 +5,8 @@ import {
   Calendar,
   Edit3,
   Flame,
+  GraduationCap,
   Languages,
-  MapPin,
   Share2,
   Sparkles,
   Target,
@@ -29,9 +29,9 @@ import {
   buttonClass,
 } from "@/components/kit/primitives";
 import { EmptyState, ErrorState, LoadingBlock } from "@/components/kit/states";
+import { handleFrom, initialsFrom, useAuth } from "@/lib/auth";
 import {
   getLearnerService,
-  skillAverage,
   strongestSkill,
   useAsync,
   weakestSkill,
