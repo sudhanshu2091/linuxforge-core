@@ -156,6 +156,8 @@ function UserMenu() {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const identity = useIdentity();
+  const signOut = useSignOut();
 
   return (
     <div className="min-h-screen bg-background">
@@ -173,7 +175,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Flame className="size-4 text-primary" />
               <p className="text-xs font-semibold">Forge streak</p>
             </div>
-            <p className="mt-1 font-mono text-lg font-semibold">{demoLearner.currentStreak} days</p>
+            <p className="mt-1 font-mono text-lg font-semibold">0 days</p>
             <FutureTag className="mt-2" label="Demo · integration-ready" />
           </div>
         </div>
@@ -198,20 +200,23 @@ export function AppShell({ children }: { children: ReactNode }) {
               </button>
             </div>
             <div className="border-b border-border px-4 py-3">
-              <p className="truncate text-sm font-semibold">{demoLearner.displayName}</p>
-              <p className="truncate font-mono text-[11px] text-muted-foreground">@{demoLearner.handle}</p>
+              <p className="truncate text-sm font-semibold">{identity.displayName}</p>
+              <p className="truncate font-mono text-[11px] text-muted-foreground">@{identity.handle}</p>
             </div>
             <div className="flex-1 overflow-y-auto px-2 py-5">
               <NavList onNavigate={() => setMobileOpen(false)} />
             </div>
             <div className="border-t border-border p-2">
-              <Link
-                to="/auth/login"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-surface-2 hover:text-foreground"
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileOpen(false);
+                  void signOut();
+                }}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-muted-foreground hover:bg-surface-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <LogOut className="size-4" /> Sign out
-              </Link>
+              </button>
             </div>
           </div>
         </div>
