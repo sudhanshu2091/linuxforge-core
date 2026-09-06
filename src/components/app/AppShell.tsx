@@ -100,9 +100,9 @@ function UserMenu() {
         className="flex items-center gap-2 rounded-lg border border-border bg-surface/60 py-1 pl-1 pr-2 text-sm transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <span className="flex size-7 items-center justify-center rounded-md bg-surface-2 font-mono text-xs text-primary">
-          {demoLearner.initials}
+          {identity.initials}
         </span>
-        <span className="hidden max-w-28 truncate font-medium sm:inline">{demoLearner.displayName}</span>
+        <span className="hidden max-w-28 truncate font-medium sm:inline">{identity.displayName}</span>
         <ChevronDown className={cn("size-3.5 text-muted-foreground transition-transform", open && "rotate-180")} />
       </button>
 
@@ -112,8 +112,8 @@ function UserMenu() {
           className="absolute right-0 z-40 mt-2 w-64 overflow-hidden rounded-xl border border-border bg-card/95 panel-shadow backdrop-blur-md"
         >
           <div className="border-b border-border px-4 py-3">
-            <p className="truncate text-sm font-semibold">{demoLearner.displayName}</p>
-            <p className="truncate font-mono text-[11px] text-muted-foreground">@{demoLearner.handle}</p>
+            <p className="truncate text-sm font-semibold">{identity.displayName}</p>
+            <p className="truncate font-mono text-[11px] text-muted-foreground">@{identity.handle}</p>
             <div className="mt-2 flex items-center gap-2">
               <Tag tone="primary">{demoLearner.rank}</Tag>
               <span className="font-mono text-[11px] text-muted-foreground">Lv {demoLearner.level}</span>
