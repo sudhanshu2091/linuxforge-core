@@ -205,27 +205,27 @@ function ProfilePage() {
                 <StatCard
                   label="Current streak"
                   value={`${me.currentStreak} days`}
-                  hint={`Longest ${me.longestStreak} days`}
+                  hint="No streak recorded yet"
                   icon={<Flame className="size-4" />}
                   tone="warn"
                 />
                 <StatCard
                   label="Labs completed"
                   value={String(me.labsCompleted)}
-                  hint="Sandboxed labs only"
+                  hint="No labs completed yet"
                   icon={<Target className="size-4" />}
                   tone="accent"
                 />
                 <StatCard
                   label="Challenges cleared"
                   value={String(me.challengesCompleted)}
-                  hint="Authorized challenges"
+                  hint="No challenges cleared yet"
                   icon={<Trophy className="size-4" />}
                 />
                 <StatCard
-                  label="Skill mastery"
-                  value={`${skillAverage(me.skills)}%`}
-                  hint="Average across branches"
+                  label="Forge rank"
+                  value={me.rank}
+                  hint={`Level ${me.level} · starting rank`}
                   icon={<TrendingUp className="size-4" />}
                   tone="signal"
                 />
