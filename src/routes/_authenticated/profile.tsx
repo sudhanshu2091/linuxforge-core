@@ -148,15 +148,7 @@ function ProfilePage() {
                       <p className="mt-1 font-mono text-xs text-muted-foreground">
                         @{me.handle} · {me.email}
                       </p>
-                      {me.bio ? (
-                        <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground">{me.bio}</p>
-                      ) : null}
                       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-muted-foreground">
-                        {me.location ? (
-                          <span className="inline-flex items-center gap-1.5">
-                            <MapPin className="size-3.5" /> {me.location}
-                          </span>
-                        ) : null}
                         <span className="inline-flex items-center gap-1.5">
                           <Calendar className="size-3.5" /> Joined {me.joinedAt}
                         </span>
