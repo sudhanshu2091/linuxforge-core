@@ -237,7 +237,7 @@ function ProfilePage() {
                     <PanelHeader
                       title="Skill mastery"
                       subtitle="Preview of the curriculum system — not your recorded results"
-                      actions={<FutureTag label="Demo · curriculum stage" />}
+                      action={<FutureTag label="Demo · curriculum stage" />}
                     />
                     {learner.status === "loading" ? <LoadingBlock rows={3} /> : null}
                     {me.skills.length === 0 ? (
