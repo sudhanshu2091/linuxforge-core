@@ -163,6 +163,9 @@ function ProfilePage() {
                         <span className="inline-flex items-center gap-1.5">
                           <Languages className="size-3.5" /> Tutor: {me.tutorLanguage}
                         </span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <GraduationCap className="size-3.5" /> Linux level: {me.comfortLevel}
+                        </span>
                         <Link to="/friends" className="inline-flex items-center gap-1.5 hover:text-foreground">
                           <Users className="size-3.5" /> View squad
                         </Link>
