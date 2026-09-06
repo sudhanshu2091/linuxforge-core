@@ -1,11 +1,33 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Bell, ChevronDown, Flame, Menu, Search, Sparkles, X, LogOut } from "lucide-react";
 import { Logo } from "@/components/kit/Logo";
 import { FutureTag, Tag, buttonClass } from "@/components/kit/primitives";
 import { primaryNav, userMenuNav } from "./nav-config";
 import { demoLearner } from "@/lib/learner-data";
+import { handleFrom, initialsFrom, useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+
+/** Live identity for the account menu, with a safe fallback while it loads. */
+function useIdentity() {
+  const { profile, user, status } = useAuth();
+  const displayName = profile?.display_name ?? user?.email?.split("@")[0] ?? "Learner";
+  return {
+    status,
+    displayName,
+    handle: handleFrom(profile ?? null, user?.email),
+    initials: initialsFrom(displayName),
+  };
+}
+
+function useSignOut() {
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+  return async () => {
+    await signOut();
+    void navigate({ to: "/auth/login", replace: true });
+  };
+}
 
 function NavList({ onNavigate }: { onNavigate?: () => void }) {
   return (
