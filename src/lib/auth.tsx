@@ -43,7 +43,7 @@ export type AuthStatus = "loading" | "signed-out" | "ready" | "error";
 type AuthContextValue = {
   status: AuthStatus;
   /** Present while the database read failed but the session is valid. */
-  error?: string;
+  error?: string | undefined;
   session: Session | null;
   user: User | null;
   profile: LearnerProfile | null;
