@@ -109,8 +109,6 @@ function ProfilePage() {
             longestStreak: 0,
             labsCompleted: 0,
             challengesCompleted: 0,
-            bio: null as string | null,
-            location: null as string | null,
             joinedAt: new Date(profile.created_at).toLocaleDateString(undefined, {
               month: "short",
               year: "numeric",
