@@ -196,7 +196,7 @@ function ProfilePage() {
                         </span>
                       ))}
                     </div>
-                    <FutureTag className="mt-3" label="Demo data · integration-ready" />
+                    <FutureTag className="mt-3" label="No XP recorded yet · awaits learning systems" />
                   </div>
                 </div>
               </Panel>
