@@ -4,7 +4,7 @@ import { Bell, ChevronDown, Flame, Menu, Search, Sparkles, X, LogOut } from "luc
 import { Logo } from "@/components/kit/Logo";
 import { FutureTag, Tag, buttonClass } from "@/components/kit/primitives";
 import { primaryNav, userMenuNav } from "./nav-config";
-import { demoLearner } from "@/lib/learner-data";
+import { RANK_LADDER } from "@/lib/learner-data";
 import { handleFrom, initialsFrom, useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
@@ -115,8 +115,8 @@ function UserMenu() {
             <p className="truncate text-sm font-semibold">{identity.displayName}</p>
             <p className="truncate font-mono text-[11px] text-muted-foreground">@{identity.handle}</p>
             <div className="mt-2 flex items-center gap-2">
-              <Tag tone="primary">{demoLearner.rank}</Tag>
-              <span className="font-mono text-[11px] text-muted-foreground">Lv {demoLearner.level}</span>
+              <Tag tone="primary">{RANK_LADDER[0]}</Tag>
+              <span className="font-mono text-[11px] text-muted-foreground">Lv 1</span>
             </div>
           </div>
           <ul className="p-1.5">
@@ -135,18 +135,18 @@ function UserMenu() {
             ))}
           </ul>
           <div className="border-t border-border p-1.5">
-            <Link
-              to="/auth/login"
+            <button
+              type="button"
               role="menuitem"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-surface hover:text-foreground"
+              onClick={() => {
+                setOpen(false);
+                void signOut();
+              }}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-surface hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <LogOut className="size-4" />
               Sign out
-            </Link>
-            <p className="px-3 pb-1 pt-1 text-[10px] text-muted-foreground">
-              Sign out is a demo action until accounts are wired.
-            </p>
+            </button>
           </div>
         </div>
       )}
