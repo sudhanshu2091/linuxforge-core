@@ -320,19 +320,26 @@ function ProfilePage() {
 
                   <Panel>
                     <PanelHeader title="Recent achievements" icon={<Award className="size-4" />} />
-                    <ul className="space-y-2">
-                      {me.recentBadges.map((b) => (
-                        <li
-                          key={b.id}
-                          className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface-2/50 px-3 py-2.5"
-                        >
-                          <span className="truncate text-xs">{b.label}</span>
-                          <span className="shrink-0 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                            {b.earnedAt}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
+                    {me.recentBadges.length === 0 ? (
+                      <EmptyState
+                        title="No badges yet"
+                        description="Badges unlock once challenges and labs start recording results."
+                      />
+                    ) : (
+                      <ul className="space-y-2">
+                        {me.recentBadges.map((b) => (
+                          <li
+                            key={b.id}
+                            className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface-2/50 px-3 py-2.5"
+                          >
+                            <span className="truncate text-xs">{b.label}</span>
+                            <span className="shrink-0 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                              {b.earnedAt}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                     <Link
                       to="/achievements"
                       className={cn(buttonClass({ variant: "ghost", size: "sm" }), "mt-3 w-full")}
