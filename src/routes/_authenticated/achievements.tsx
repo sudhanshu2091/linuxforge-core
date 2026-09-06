@@ -12,7 +12,7 @@ import {
 } from "@/components/kit/primitives";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/achievements")({
+export const Route = createFileRoute("/_authenticated/achievements")({
   head: () => ({
     meta: [
       { title: "Achievements — LinuxForge AI" },

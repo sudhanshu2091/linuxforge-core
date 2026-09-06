@@ -7,7 +7,7 @@ import { EmptyState, ErrorState, LoadingBlock } from "@/components/kit/states";
 import { useAsync } from "@/lib/learner-data";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/notifications")({
+export const Route = createFileRoute("/_authenticated/notifications")({
   head: () => ({
     meta: [
       { title: "Notifications — LinuxForge AI" },

@@ -10,17 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AchievementsRouteImport } from './routes/achievements'
-import { Route as ChallengesRouteImport } from './routes/challenges'
-import { Route as DashboardRouteImport } from './routes/dashboard'
-import { Route as FriendsRouteImport } from './routes/friends'
-import { Route as LearnRouteImport } from './routes/learn'
-import { Route as NotificationsRouteImport } from './routes/notifications'
-import { Route as ProfileRouteImport } from './routes/profile'
-import { Route as ProgressRouteImport } from './routes/progress'
-import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as TerminalRouteImport } from './routes/terminal'
-import { Route as TutorRouteImport } from './routes/tutor'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthenticatedAchievementsRouteImport } from './routes/_authenticated/achievements'
+import { Route as AuthenticatedChallengesRouteImport } from './routes/_authenticated/challenges'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedFriendsRouteImport } from './routes/_authenticated/friends'
+import { Route as AuthenticatedLearnRouteImport } from './routes/_authenticated/learn'
+import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
+import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedProgressRouteImport } from './routes/_authenticated/progress'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedTerminalRouteImport } from './routes/_authenticated/terminal'
+import { Route as AuthenticatedTutorRouteImport } from './routes/_authenticated/tutor'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AuthResetRouteImport } from './routes/auth.reset'
 import { Route as AuthSignupRouteImport } from './routes/auth.signup'
@@ -30,60 +31,66 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AchievementsRoute = AchievementsRouteImport.update({
-  id: '/achievements',
-  path: '/achievements',
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ChallengesRoute = ChallengesRouteImport.update({
+const AuthenticatedAchievementsRoute =
+  AuthenticatedAchievementsRouteImport.update({
+    id: '/achievements',
+    path: '/achievements',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedChallengesRoute = AuthenticatedChallengesRouteImport.update({
   id: '/challenges',
   path: '/challenges',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const DashboardRoute = DashboardRouteImport.update({
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const FriendsRoute = FriendsRouteImport.update({
+const AuthenticatedFriendsRoute = AuthenticatedFriendsRouteImport.update({
   id: '/friends',
   path: '/friends',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const LearnRoute = LearnRouteImport.update({
+const AuthenticatedLearnRoute = AuthenticatedLearnRouteImport.update({
   id: '/learn',
   path: '/learn',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const NotificationsRoute = NotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfileRoute = ProfileRouteImport.update({
+const AuthenticatedNotificationsRoute =
+  AuthenticatedNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const ProgressRoute = ProgressRouteImport.update({
+const AuthenticatedProgressRoute = AuthenticatedProgressRouteImport.update({
   id: '/progress',
   path: '/progress',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const SettingsRoute = SettingsRouteImport.update({
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const TerminalRoute = TerminalRouteImport.update({
+const AuthenticatedTerminalRoute = AuthenticatedTerminalRouteImport.update({
   id: '/terminal',
   path: '/terminal',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const TutorRoute = TutorRouteImport.update({
+const AuthenticatedTutorRoute = AuthenticatedTutorRouteImport.update({
   id: '/tutor',
   path: '/tutor',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthLoginRoute = AuthLoginRouteImport.update({
   id: '/auth/login',
@@ -103,34 +110,34 @@ const AuthSignupRoute = AuthSignupRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/achievements': typeof AchievementsRoute
-  '/challenges': typeof ChallengesRoute
-  '/dashboard': typeof DashboardRoute
-  '/friends': typeof FriendsRoute
-  '/learn': typeof LearnRoute
-  '/notifications': typeof NotificationsRoute
-  '/profile': typeof ProfileRoute
-  '/progress': typeof ProgressRoute
-  '/settings': typeof SettingsRoute
-  '/terminal': typeof TerminalRoute
-  '/tutor': typeof TutorRoute
+  '/achievements': typeof AuthenticatedAchievementsRoute
+  '/challenges': typeof AuthenticatedChallengesRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/friends': typeof AuthenticatedFriendsRoute
+  '/learn': typeof AuthenticatedLearnRoute
+  '/notifications': typeof AuthenticatedNotificationsRoute
+  '/profile': typeof AuthenticatedProfileRoute
+  '/progress': typeof AuthenticatedProgressRoute
+  '/settings': typeof AuthenticatedSettingsRoute
+  '/terminal': typeof AuthenticatedTerminalRoute
+  '/tutor': typeof AuthenticatedTutorRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/reset': typeof AuthResetRoute
   '/auth/signup': typeof AuthSignupRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/achievements': typeof AchievementsRoute
-  '/challenges': typeof ChallengesRoute
-  '/dashboard': typeof DashboardRoute
-  '/friends': typeof FriendsRoute
-  '/learn': typeof LearnRoute
-  '/notifications': typeof NotificationsRoute
-  '/profile': typeof ProfileRoute
-  '/progress': typeof ProgressRoute
-  '/settings': typeof SettingsRoute
-  '/terminal': typeof TerminalRoute
-  '/tutor': typeof TutorRoute
+  '/achievements': typeof AuthenticatedAchievementsRoute
+  '/challenges': typeof AuthenticatedChallengesRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/friends': typeof AuthenticatedFriendsRoute
+  '/learn': typeof AuthenticatedLearnRoute
+  '/notifications': typeof AuthenticatedNotificationsRoute
+  '/profile': typeof AuthenticatedProfileRoute
+  '/progress': typeof AuthenticatedProgressRoute
+  '/settings': typeof AuthenticatedSettingsRoute
+  '/terminal': typeof AuthenticatedTerminalRoute
+  '/tutor': typeof AuthenticatedTutorRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/reset': typeof AuthResetRoute
   '/auth/signup': typeof AuthSignupRoute
@@ -138,17 +145,18 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/achievements': typeof AchievementsRoute
-  '/challenges': typeof ChallengesRoute
-  '/dashboard': typeof DashboardRoute
-  '/friends': typeof FriendsRoute
-  '/learn': typeof LearnRoute
-  '/notifications': typeof NotificationsRoute
-  '/profile': typeof ProfileRoute
-  '/progress': typeof ProgressRoute
-  '/settings': typeof SettingsRoute
-  '/terminal': typeof TerminalRoute
-  '/tutor': typeof TutorRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/_authenticated/achievements': typeof AuthenticatedAchievementsRoute
+  '/_authenticated/challenges': typeof AuthenticatedChallengesRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/friends': typeof AuthenticatedFriendsRoute
+  '/_authenticated/learn': typeof AuthenticatedLearnRoute
+  '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
+  '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/_authenticated/progress': typeof AuthenticatedProgressRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/terminal': typeof AuthenticatedTerminalRoute
+  '/_authenticated/tutor': typeof AuthenticatedTutorRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/reset': typeof AuthResetRoute
   '/auth/signup': typeof AuthSignupRoute
@@ -191,17 +199,18 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/achievements'
-    | '/challenges'
-    | '/dashboard'
-    | '/friends'
-    | '/learn'
-    | '/notifications'
-    | '/profile'
-    | '/progress'
-    | '/settings'
-    | '/terminal'
-    | '/tutor'
+    | '/_authenticated'
+    | '/_authenticated/achievements'
+    | '/_authenticated/challenges'
+    | '/_authenticated/dashboard'
+    | '/_authenticated/friends'
+    | '/_authenticated/learn'
+    | '/_authenticated/notifications'
+    | '/_authenticated/profile'
+    | '/_authenticated/progress'
+    | '/_authenticated/settings'
+    | '/_authenticated/terminal'
+    | '/_authenticated/tutor'
     | '/auth/login'
     | '/auth/reset'
     | '/auth/signup'
@@ -209,17 +218,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AchievementsRoute: typeof AchievementsRoute
-  ChallengesRoute: typeof ChallengesRoute
-  DashboardRoute: typeof DashboardRoute
-  FriendsRoute: typeof FriendsRoute
-  LearnRoute: typeof LearnRoute
-  NotificationsRoute: typeof NotificationsRoute
-  ProfileRoute: typeof ProfileRoute
-  ProgressRoute: typeof ProgressRoute
-  SettingsRoute: typeof SettingsRoute
-  TerminalRoute: typeof TerminalRoute
-  TutorRoute: typeof TutorRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthLoginRoute: typeof AuthLoginRoute
   AuthResetRoute: typeof AuthResetRoute
   AuthSignupRoute: typeof AuthSignupRoute
@@ -234,82 +233,89 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/achievements': {
-      id: '/achievements'
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/achievements': {
+      id: '/_authenticated/achievements'
       path: '/achievements'
       fullPath: '/achievements'
-      preLoaderRoute: typeof AchievementsRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedAchievementsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/challenges': {
-      id: '/challenges'
+    '/_authenticated/challenges': {
+      id: '/_authenticated/challenges'
       path: '/challenges'
       fullPath: '/challenges'
-      preLoaderRoute: typeof ChallengesRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedChallengesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/dashboard': {
-      id: '/dashboard'
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/friends': {
-      id: '/friends'
+    '/_authenticated/friends': {
+      id: '/_authenticated/friends'
       path: '/friends'
       fullPath: '/friends'
-      preLoaderRoute: typeof FriendsRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedFriendsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/learn': {
-      id: '/learn'
+    '/_authenticated/learn': {
+      id: '/_authenticated/learn'
       path: '/learn'
       fullPath: '/learn'
-      preLoaderRoute: typeof LearnRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedLearnRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/notifications': {
-      id: '/notifications'
+    '/_authenticated/notifications': {
+      id: '/_authenticated/notifications'
       path: '/notifications'
       fullPath: '/notifications'
-      preLoaderRoute: typeof NotificationsRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedNotificationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/profile': {
-      id: '/profile'
+    '/_authenticated/profile': {
+      id: '/_authenticated/profile'
       path: '/profile'
       fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedProfileRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/progress': {
-      id: '/progress'
+    '/_authenticated/progress': {
+      id: '/_authenticated/progress'
       path: '/progress'
       fullPath: '/progress'
-      preLoaderRoute: typeof ProgressRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedProgressRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/settings': {
-      id: '/settings'
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
       path: '/settings'
       fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/terminal': {
-      id: '/terminal'
+    '/_authenticated/terminal': {
+      id: '/_authenticated/terminal'
       path: '/terminal'
       fullPath: '/terminal'
-      preLoaderRoute: typeof TerminalRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedTerminalRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/tutor': {
-      id: '/tutor'
+    '/_authenticated/tutor': {
+      id: '/_authenticated/tutor'
       path: '/tutor'
       fullPath: '/tutor'
-      preLoaderRoute: typeof TutorRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedTutorRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/auth/login': {
       id: '/auth/login'
@@ -335,19 +341,40 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAchievementsRoute: typeof AuthenticatedAchievementsRoute
+  AuthenticatedChallengesRoute: typeof AuthenticatedChallengesRoute
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedFriendsRoute: typeof AuthenticatedFriendsRoute
+  AuthenticatedLearnRoute: typeof AuthenticatedLearnRoute
+  AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
+  AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
+  AuthenticatedProgressRoute: typeof AuthenticatedProgressRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedTerminalRoute: typeof AuthenticatedTerminalRoute
+  AuthenticatedTutorRoute: typeof AuthenticatedTutorRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAchievementsRoute: AuthenticatedAchievementsRoute,
+  AuthenticatedChallengesRoute: AuthenticatedChallengesRoute,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedFriendsRoute: AuthenticatedFriendsRoute,
+  AuthenticatedLearnRoute: AuthenticatedLearnRoute,
+  AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
+  AuthenticatedProfileRoute: AuthenticatedProfileRoute,
+  AuthenticatedProgressRoute: AuthenticatedProgressRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedTerminalRoute: AuthenticatedTerminalRoute,
+  AuthenticatedTutorRoute: AuthenticatedTutorRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AchievementsRoute: AchievementsRoute,
-  ChallengesRoute: ChallengesRoute,
-  DashboardRoute: DashboardRoute,
-  FriendsRoute: FriendsRoute,
-  LearnRoute: LearnRoute,
-  NotificationsRoute: NotificationsRoute,
-  ProfileRoute: ProfileRoute,
-  ProgressRoute: ProgressRoute,
-  SettingsRoute: SettingsRoute,
-  TerminalRoute: TerminalRoute,
-  TutorRoute: TutorRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthLoginRoute: AuthLoginRoute,
   AuthResetRoute: AuthResetRoute,
   AuthSignupRoute: AuthSignupRoute,

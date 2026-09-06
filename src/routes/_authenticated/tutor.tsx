@@ -13,7 +13,7 @@ import {
 } from "@/components/kit/primitives";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/tutor")({
+export const Route = createFileRoute("/_authenticated/tutor")({
   head: () => ({
     meta: [
       { title: "AI Tutor — LinuxForge AI" },

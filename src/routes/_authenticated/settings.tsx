@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { TUTOR_LANGUAGES, useAuth } from "@/lib/auth";
 import {
   Accessibility,
   ArrowLeft,
@@ -29,7 +30,7 @@ import {
 import { demoLearner } from "@/lib/learner-data";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/settings")({
+export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
     meta: [
       { title: "Settings — LinuxForge AI" },
@@ -66,8 +67,26 @@ const sections: { id: SectionId; label: string; icon: typeof UserRound }[] = [
   { id: "safety", label: "Terminal & lab safety", icon: ShieldCheck },
 ];
 
-function Toggle({ label, description, on = false }: { label: string; description?: string; on?: boolean }) {
-  const [checked, setChecked] = useState(on);
+function Toggle({
+  label,
+  description,
+  on = false,
+  value,
+  onChange,
+}: {
+  label: string;
+  description?: string;
+  on?: boolean;
+  /** Controlled mode: persisted preferences pass value + onChange. */
+  value?: boolean;
+  onChange?: (next: boolean) => void;
+}) {
+  const [local, setLocal] = useState(on);
+  const checked = value ?? local;
+  const setChecked = (next: boolean) => {
+    if (onChange) onChange(next);
+    else setLocal(next);
+  };
   return (
     <div className="flex items-start justify-between gap-4 border-b border-border py-3.5 last:border-0">
       <div className="min-w-0">
@@ -78,7 +97,7 @@ function Toggle({ label, description, on = false }: { label: string; description
         role="switch"
         aria-checked={checked}
         aria-label={label}
-        onClick={() => setChecked((v) => !v)}
+        onClick={() => setChecked(!checked)}
         className={cn(
           "mt-0.5 h-5 w-9 shrink-0 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           checked ? "border-primary/50 bg-primary/80" : "border-border bg-surface-2",
@@ -129,8 +148,28 @@ function Choices({
 }
 
 function SettingsPage() {
+  const auth = useAuth();
   const [active, setActive] = useState<SectionId>("account");
   const [saved, setSaved] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  const prefs = auth.preferences;
+  const language = prefs?.preferred_tutor_language ?? "Mix both";
+
+  useEffect(() => {
+    if (auth.profile) setName(auth.profile.display_name);
+  }, [auth.profile]);
+
+  async function saveAccount() {
+    setBusy(true);
+    setError(null);
+    setSaved(false);
+    const res = await auth.updateProfile({ display_name: name.trim() });
+    setBusy(false);
+    if (res.error) setError(res.error);
+    else setSaved(true);
+  }
 
   return (
     <AppShell>
@@ -177,23 +216,24 @@ function SettingsPage() {
               <PanelHeader title="Account" subtitle="How you appear in the forge" icon={<UserRound className="size-4" />} />
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Display name">
-                  <Input defaultValue={demoLearner.displayName} />
+                  <Input value={name} onChange={(e) => setName(e.target.value)} />
                 </Field>
                 <Field label="Forge handle" hint="Squad mates find you with this.">
                   <Input defaultValue={demoLearner.handle} />
                 </Field>
-                <Field label="Email">
-                  <Input type="email" defaultValue={demoLearner.email} />
+                <Field label="Email" hint="Managed by your sign-in identity.">
+                  <Input type="email" value={auth.profile?.email ?? auth.user?.email ?? ""} readOnly />
                 </Field>
                 <Field label="Location">
                   <Input defaultValue={demoLearner.location} />
                 </Field>
               </div>
               <div className="mt-4 flex items-center gap-3">
-                <Button size="sm" onClick={() => setSaved(true)}>
+                <Button size="sm" disabled={busy} onClick={saveAccount}>
                   Save changes
                 </Button>
-                {saved ? <Tag tone="signal">Saved locally (demo)</Tag> : null}
+                {saved ? <Tag tone="signal">Saved to your account</Tag> : null}
+                {error ? <Tag tone="warn">{error}</Tag> : null}
               </div>
             </Panel>
           ) : null}
@@ -224,7 +264,24 @@ function SettingsPage() {
                 icon={<Languages className="size-4" />}
               />
               <p className="mb-2 text-xs text-muted-foreground">Tutor language</p>
-              <Choices options={["English", "Hinglish", "Mix (auto)"]} initial={2} />
+              <div className="grid gap-2 sm:grid-cols-3">
+                {TUTOR_LANGUAGES.map((l) => (
+                  <button
+                    key={l}
+                    onClick={() => void auth.updatePreferences({ preferred_tutor_language: l })}
+                    aria-pressed={language === l}
+                    className={cn(
+                      "rounded-lg border px-3 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      language === l
+                        ? "border-accent/45 bg-accent/10 text-accent"
+                        : "border-border bg-surface/60 text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {l}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">Saved to your account instantly.</p>
               <p className="mb-2 mt-5 text-xs text-muted-foreground">Explanation depth</p>
               <Choices options={["Quick", "Guided", "Deep dive"]} initial={1} />
               <div className="mt-4">
@@ -257,11 +314,33 @@ function SettingsPage() {
           {active === "notifications" ? (
             <Panel>
               <PanelHeader title="Notifications" icon={<Bell className="size-4" />} />
-              <Toggle label="Daily drill reminder" on />
-              <Toggle label="Streak at risk warning" on />
-              <Toggle label="Squad activity" description="Requests, accepted invites and leaderboard changes." on />
-              <Toggle label="Achievement unlocks" on />
-              <Toggle label="Email digest" description="Delivery starts with the account stage." />
+              <Toggle
+                label="Daily drill reminder"
+                value={prefs?.notify_daily_drill ?? true}
+                onChange={(v) => void auth.updatePreferences({ notify_daily_drill: v })}
+              />
+              <Toggle
+                label="Streak at risk warning"
+                value={prefs?.notify_streak_risk ?? true}
+                onChange={(v) => void auth.updatePreferences({ notify_streak_risk: v })}
+              />
+              <Toggle
+                label="Squad activity"
+                description="Requests, accepted invites and leaderboard changes."
+                value={prefs?.notify_squad_activity ?? true}
+                onChange={(v) => void auth.updatePreferences({ notify_squad_activity: v })}
+              />
+              <Toggle
+                label="Achievement unlocks"
+                value={prefs?.notify_achievements ?? true}
+                onChange={(v) => void auth.updatePreferences({ notify_achievements: v })}
+              />
+              <Toggle
+                label="Email digest"
+                description="Delivery starts once email sending is connected."
+                value={prefs?.notify_email_digest ?? false}
+                onChange={(v) => void auth.updatePreferences({ notify_email_digest: v })}
+              />
               <Link to="/notifications" className={cn(buttonClass({ variant: "outline", size: "sm" }), "mt-4")}>
                 Open notifications
               </Link>

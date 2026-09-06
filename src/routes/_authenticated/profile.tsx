@@ -5,8 +5,8 @@ import {
   Calendar,
   Edit3,
   Flame,
+  GraduationCap,
   Languages,
-  MapPin,
   Share2,
   Sparkles,
   Target,
@@ -29,9 +29,9 @@ import {
   buttonClass,
 } from "@/components/kit/primitives";
 import { EmptyState, ErrorState, LoadingBlock } from "@/components/kit/states";
+import { handleFrom, initialsFrom, useAuth } from "@/lib/auth";
 import {
   getLearnerService,
-  skillAverage,
   strongestSkill,
   useAsync,
   weakestSkill,
@@ -39,7 +39,7 @@ import {
 } from "@/lib/learner-data";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/profile")({
+export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({
     meta: [
       { title: "Profile — LinuxForge AI" },
@@ -56,6 +56,7 @@ export const Route = createFileRoute("/profile")({
 });
 
 function ProfilePage() {
+  const auth = useAuth();
   const learner = useAsync(getLearnerService);
   const [shared, setShared] = useState(false);
 
@@ -64,7 +65,7 @@ function ProfilePage() {
       <PageHeader
         eyebrow="Profile"
         title="Your forge identity"
-        description="A snapshot of what you've actually proved — rank, verified skill mastery and the drills behind them."
+        description="Your account details are live. Progression stays at zero until the learning systems record real results."
         actions={
           <>
             <Link to="/dashboard" className={buttonClass({ variant: "ghost", size: "sm" })}>
@@ -80,16 +81,48 @@ function ProfilePage() {
         }
       />
 
-      {learner.status === "loading" ? <LoadingBlock rows={4} /> : null}
-      {learner.status === "error" ? (
-        <ErrorState description={learner.error} onRetry={learner.reload} />
+      {auth.status === "loading" ? <LoadingBlock rows={4} /> : null}
+      {auth.status === "signed-out" ? (
+        <EmptyState title="You're signed out" description="Sign in again to see your profile." />
+      ) : null}
+      {auth.status === "error" ? (
+        <ErrorState
+          description={auth.error ?? "We couldn't reach your account right now."}
+          onRetry={auth.reload}
+        />
       ) : null}
 
-      {learner.status === "success" && learner.data ? (
+      {auth.status === "ready" && auth.profile ? (
         (() => {
-          const me = learner.data!;
-          const best = strongestSkill(me.skills);
-          const worst = weakestSkill(me.skills);
+          const demo = learner.status === "success" && learner.data ? learner.data : null;
+          const profile = auth.profile!;
+          const me = {
+            displayName: profile.display_name,
+            email: profile.email || auth.user?.email || "",
+            handle: handleFrom(profile, auth.user?.email),
+            initials: initialsFrom(profile.display_name),
+            rank: RANK_LADDER[0]!,
+            level: 1,
+            xp: 0,
+            xpToNextLevel: 1000,
+            currentStreak: 0,
+            longestStreak: 0,
+            labsCompleted: 0,
+            challengesCompleted: 0,
+            joinedAt: new Date(profile.created_at).toLocaleDateString(undefined, {
+              month: "short",
+              year: "numeric",
+            }),
+            tutorLanguage: auth.preferences?.preferred_tutor_language ?? "Mix both",
+            comfortLevel: profile.linux_comfort_level,
+            goal: "No learning path started yet.",
+            path: "Not selected",
+            skills: demo?.skills ?? [],
+            personalBests: [] as { id: string; label: string; value: string; detail: string }[],
+            recentBadges: [] as { id: string; label: string; earnedAt: string }[],
+          };
+          const best = me.skills.length ? strongestSkill(me.skills) : null;
+          const worst = me.skills.length ? weakestSkill(me.skills) : null;
           const xpPct = Math.round((me.xp / me.xpToNextLevel) * 100);
           return (
             <>
@@ -113,20 +146,15 @@ function ProfilePage() {
                       <p className="mt-1 font-mono text-xs text-muted-foreground">
                         @{me.handle} · {me.email}
                       </p>
-                      {me.bio ? (
-                        <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground">{me.bio}</p>
-                      ) : null}
                       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-muted-foreground">
-                        {me.location ? (
-                          <span className="inline-flex items-center gap-1.5">
-                            <MapPin className="size-3.5" /> {me.location}
-                          </span>
-                        ) : null}
                         <span className="inline-flex items-center gap-1.5">
                           <Calendar className="size-3.5" /> Joined {me.joinedAt}
                         </span>
                         <span className="inline-flex items-center gap-1.5">
                           <Languages className="size-3.5" /> Tutor: {me.tutorLanguage}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <GraduationCap className="size-3.5" /> Linux level: {me.comfortLevel}
                         </span>
                         <Link to="/friends" className="inline-flex items-center gap-1.5 hover:text-foreground">
                           <Users className="size-3.5" /> View squad
@@ -158,7 +186,7 @@ function ProfilePage() {
                         </span>
                       ))}
                     </div>
-                    <FutureTag className="mt-3" label="Demo data · integration-ready" />
+                    <FutureTag className="mt-3" label="No XP recorded yet · awaits learning systems" />
                   </div>
                 </div>
               </Panel>
@@ -167,27 +195,27 @@ function ProfilePage() {
                 <StatCard
                   label="Current streak"
                   value={`${me.currentStreak} days`}
-                  hint={`Longest ${me.longestStreak} days`}
+                  hint="No streak recorded yet"
                   icon={<Flame className="size-4" />}
                   tone="warn"
                 />
                 <StatCard
                   label="Labs completed"
                   value={String(me.labsCompleted)}
-                  hint="Sandboxed labs only"
+                  hint="No labs completed yet"
                   icon={<Target className="size-4" />}
                   tone="accent"
                 />
                 <StatCard
                   label="Challenges cleared"
                   value={String(me.challengesCompleted)}
-                  hint="Authorized challenges"
+                  hint="No challenges cleared yet"
                   icon={<Trophy className="size-4" />}
                 />
                 <StatCard
-                  label="Skill mastery"
-                  value={`${skillAverage(me.skills)}%`}
-                  hint="Average across branches"
+                  label="Forge rank"
+                  value={me.rank}
+                  hint={`Level ${me.level} · starting rank`}
                   icon={<TrendingUp className="size-4" />}
                   tone="signal"
                 />
@@ -196,37 +224,58 @@ function ProfilePage() {
               <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_340px]">
                 <div className="space-y-6">
                   <Panel>
-                    <PanelHeader title="Skill mastery" subtitle="Derived from lab outcomes, not lesson views" />
-                    <ul className="space-y-3.5">
-                      {me.skills.map((s, i) => (
-                        <li key={s.key}>
-                          <div className="mb-1.5 flex items-center justify-between text-xs">
-                            <span>{s.label}</span>
-                            <span className="font-mono text-muted-foreground">{s.mastery}%</span>
-                          </div>
-                          <ProgressBar value={s.mastery} tone={i % 2 === 0 ? "primary" : "accent"} />
-                        </li>
-                      ))}
-                    </ul>
-                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                      <div className="rounded-lg border border-signal/30 bg-signal/8 p-3">
-                        <p className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-signal">
-                          <TrendingUp className="size-3.5" /> Strongest
-                        </p>
-                        <p className="mt-1 text-sm font-medium">{best.label}</p>
-                        <p className="text-xs text-muted-foreground">{best.mastery}% mastery</p>
-                      </div>
-                      <div className="rounded-lg border border-warn/30 bg-warn/8 p-3">
-                        <p className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-warn">
-                          <TrendingDown className="size-3.5" /> Needs practice
-                        </p>
-                        <p className="mt-1 text-sm font-medium">{worst.label}</p>
-                        <p className="text-xs text-muted-foreground">{worst.mastery}% mastery</p>
-                      </div>
-                    </div>
-                    <Link to="/challenges" className={cn(buttonClass({ variant: "outline", size: "sm" }), "mt-4")}>
-                      Practise {worst.label}
-                    </Link>
+                    <PanelHeader
+                      title="Skill mastery"
+                      subtitle="Preview of the curriculum system — not your recorded results"
+                      action={<FutureTag label="Demo · curriculum stage" />}
+                    />
+                    {learner.status === "loading" ? <LoadingBlock rows={3} /> : null}
+                    {me.skills.length === 0 ? (
+                      <EmptyState
+                        title="No skill data yet"
+                        description="Mastery appears once the learning and lab systems record real outcomes."
+                      />
+                    ) : (
+                      <>
+                        <ul className="space-y-3.5">
+                          {me.skills.map((s, i) => (
+                            <li key={s.key}>
+                              <div className="mb-1.5 flex items-center justify-between text-xs">
+                                <span>{s.label}</span>
+                                <span className="font-mono text-muted-foreground">{s.mastery}%</span>
+                              </div>
+                              <ProgressBar value={s.mastery} tone={i % 2 === 0 ? "primary" : "accent"} />
+                            </li>
+                          ))}
+                        </ul>
+                        {best && worst ? (
+                          <>
+                            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                              <div className="rounded-lg border border-signal/30 bg-signal/8 p-3">
+                                <p className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-signal">
+                                  <TrendingUp className="size-3.5" /> Strongest
+                                </p>
+                                <p className="mt-1 text-sm font-medium">{best.label}</p>
+                                <p className="text-xs text-muted-foreground">{best.mastery}% mastery</p>
+                              </div>
+                              <div className="rounded-lg border border-warn/30 bg-warn/8 p-3">
+                                <p className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-warn">
+                                  <TrendingDown className="size-3.5" /> Needs practice
+                                </p>
+                                <p className="mt-1 text-sm font-medium">{worst.label}</p>
+                                <p className="text-xs text-muted-foreground">{worst.mastery}% mastery</p>
+                              </div>
+                            </div>
+                            <Link
+                              to="/challenges"
+                              className={cn(buttonClass({ variant: "outline", size: "sm" }), "mt-4")}
+                            >
+                              Practise {worst.label}
+                            </Link>
+                          </>
+                        ) : null}
+                      </>
+                    )}
                   </Panel>
 
                   <Panel>
@@ -261,19 +310,26 @@ function ProfilePage() {
 
                   <Panel>
                     <PanelHeader title="Recent achievements" icon={<Award className="size-4" />} />
-                    <ul className="space-y-2">
-                      {me.recentBadges.map((b) => (
-                        <li
-                          key={b.id}
-                          className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface-2/50 px-3 py-2.5"
-                        >
-                          <span className="truncate text-xs">{b.label}</span>
-                          <span className="shrink-0 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                            {b.earnedAt}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
+                    {me.recentBadges.length === 0 ? (
+                      <EmptyState
+                        title="No badges yet"
+                        description="Badges unlock once challenges and labs start recording results."
+                      />
+                    ) : (
+                      <ul className="space-y-2">
+                        {me.recentBadges.map((b) => (
+                          <li
+                            key={b.id}
+                            className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface-2/50 px-3 py-2.5"
+                          >
+                            <span className="truncate text-xs">{b.label}</span>
+                            <span className="shrink-0 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                              {b.earnedAt}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                     <Link
                       to="/achievements"
                       className={cn(buttonClass({ variant: "ghost", size: "sm" }), "mt-3 w-full")}

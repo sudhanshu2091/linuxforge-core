@@ -12,7 +12,7 @@ import {
   buttonClass,
 } from "@/components/kit/primitives";
 
-export const Route = createFileRoute("/challenges")({
+export const Route = createFileRoute("/_authenticated/challenges")({
   head: () => ({
     meta: [
       { title: "Challenges — LinuxForge AI" },

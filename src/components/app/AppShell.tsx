@@ -1,11 +1,33 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Bell, ChevronDown, Flame, Menu, Search, Sparkles, X, LogOut } from "lucide-react";
 import { Logo } from "@/components/kit/Logo";
 import { FutureTag, Tag, buttonClass } from "@/components/kit/primitives";
 import { primaryNav, userMenuNav } from "./nav-config";
-import { demoLearner } from "@/lib/learner-data";
+import { RANK_LADDER } from "@/lib/learner-data";
+import { handleFrom, initialsFrom, useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+
+/** Live identity for the account menu, with a safe fallback while it loads. */
+function useIdentity() {
+  const { profile, user, status } = useAuth();
+  const displayName = profile?.display_name ?? user?.email?.split("@")[0] ?? "Learner";
+  return {
+    status,
+    displayName,
+    handle: handleFrom(profile ?? null, user?.email),
+    initials: initialsFrom(displayName),
+  };
+}
+
+function useSignOut() {
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+  return async () => {
+    await signOut();
+    void navigate({ to: "/auth/login", replace: true });
+  };
+}
 
 function NavList({ onNavigate }: { onNavigate?: () => void }) {
   return (
@@ -52,6 +74,8 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
 function UserMenu() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const identity = useIdentity();
+  const signOut = useSignOut();
 
   useEffect(() => {
     if (!open) return;
@@ -76,9 +100,9 @@ function UserMenu() {
         className="flex items-center gap-2 rounded-lg border border-border bg-surface/60 py-1 pl-1 pr-2 text-sm transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <span className="flex size-7 items-center justify-center rounded-md bg-surface-2 font-mono text-xs text-primary">
-          {demoLearner.initials}
+          {identity.initials}
         </span>
-        <span className="hidden max-w-28 truncate font-medium sm:inline">{demoLearner.displayName}</span>
+        <span className="hidden max-w-28 truncate font-medium sm:inline">{identity.displayName}</span>
         <ChevronDown className={cn("size-3.5 text-muted-foreground transition-transform", open && "rotate-180")} />
       </button>
 
@@ -88,11 +112,11 @@ function UserMenu() {
           className="absolute right-0 z-40 mt-2 w-64 overflow-hidden rounded-xl border border-border bg-card/95 panel-shadow backdrop-blur-md"
         >
           <div className="border-b border-border px-4 py-3">
-            <p className="truncate text-sm font-semibold">{demoLearner.displayName}</p>
-            <p className="truncate font-mono text-[11px] text-muted-foreground">@{demoLearner.handle}</p>
+            <p className="truncate text-sm font-semibold">{identity.displayName}</p>
+            <p className="truncate font-mono text-[11px] text-muted-foreground">@{identity.handle}</p>
             <div className="mt-2 flex items-center gap-2">
-              <Tag tone="primary">{demoLearner.rank}</Tag>
-              <span className="font-mono text-[11px] text-muted-foreground">Lv {demoLearner.level}</span>
+              <Tag tone="primary">{RANK_LADDER[0]}</Tag>
+              <span className="font-mono text-[11px] text-muted-foreground">Lv 1</span>
             </div>
           </div>
           <ul className="p-1.5">
@@ -111,18 +135,18 @@ function UserMenu() {
             ))}
           </ul>
           <div className="border-t border-border p-1.5">
-            <Link
-              to="/auth/login"
+            <button
+              type="button"
               role="menuitem"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-surface hover:text-foreground"
+              onClick={() => {
+                setOpen(false);
+                void signOut();
+              }}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-surface hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <LogOut className="size-4" />
               Sign out
-            </Link>
-            <p className="px-3 pb-1 pt-1 text-[10px] text-muted-foreground">
-              Sign out is a demo action until accounts are wired.
-            </p>
+            </button>
           </div>
         </div>
       )}
@@ -132,6 +156,8 @@ function UserMenu() {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const identity = useIdentity();
+  const signOut = useSignOut();
 
   return (
     <div className="min-h-screen bg-background">
@@ -149,7 +175,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Flame className="size-4 text-primary" />
               <p className="text-xs font-semibold">Forge streak</p>
             </div>
-            <p className="mt-1 font-mono text-lg font-semibold">{demoLearner.currentStreak} days</p>
+            <p className="mt-1 font-mono text-lg font-semibold">0 days</p>
             <FutureTag className="mt-2" label="Demo · integration-ready" />
           </div>
         </div>
@@ -174,20 +200,23 @@ export function AppShell({ children }: { children: ReactNode }) {
               </button>
             </div>
             <div className="border-b border-border px-4 py-3">
-              <p className="truncate text-sm font-semibold">{demoLearner.displayName}</p>
-              <p className="truncate font-mono text-[11px] text-muted-foreground">@{demoLearner.handle}</p>
+              <p className="truncate text-sm font-semibold">{identity.displayName}</p>
+              <p className="truncate font-mono text-[11px] text-muted-foreground">@{identity.handle}</p>
             </div>
             <div className="flex-1 overflow-y-auto px-2 py-5">
               <NavList onNavigate={() => setMobileOpen(false)} />
             </div>
             <div className="border-t border-border p-2">
-              <Link
-                to="/auth/login"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-surface-2 hover:text-foreground"
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileOpen(false);
+                  void signOut();
+                }}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-muted-foreground hover:bg-surface-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <LogOut className="size-4" /> Sign out
-              </Link>
+              </button>
             </div>
           </div>
         </div>

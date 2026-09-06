@@ -42,7 +42,7 @@ import {
 } from "@/lib/learner-data";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/friends")({
+export const Route = createFileRoute("/_authenticated/friends")({
   head: () => ({
     meta: [
       { title: "Squad — LinuxForge AI" },
