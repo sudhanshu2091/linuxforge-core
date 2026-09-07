@@ -14,6 +14,227 @@ export type Database = {
   }
   public: {
     Tables: {
+      challenge_definitions: {
+        Row: {
+          created_at: string
+          difficulty: number
+          id: string
+          objective: string
+          prerequisites: string[]
+          required_skills: string[]
+          sequence_order: number
+          story_intro: string
+          title: string
+          updated_at: string
+          xp_reward: number
+        }
+        Insert: {
+          created_at?: string
+          difficulty?: number
+          id: string
+          objective: string
+          prerequisites?: string[]
+          required_skills?: string[]
+          sequence_order: number
+          story_intro: string
+          title: string
+          updated_at?: string
+          xp_reward?: number
+        }
+        Update: {
+          created_at?: string
+          difficulty?: number
+          id?: string
+          objective?: string
+          prerequisites?: string[]
+          required_skills?: string[]
+          sequence_order?: number
+          story_intro?: string
+          title?: string
+          updated_at?: string
+          xp_reward?: number
+        }
+        Relationships: []
+      }
+      lab_world_objects: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by_challenge: string | null
+          current_state: Json
+          lab_id: string
+          last_modified_by_challenge: string | null
+          name: string
+          object_id: string
+          object_type: string
+          path: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by_challenge?: string | null
+          current_state?: Json
+          lab_id: string
+          last_modified_by_challenge?: string | null
+          name: string
+          object_id?: string
+          object_type: string
+          path: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by_challenge?: string | null
+          current_state?: Json
+          lab_id?: string
+          last_modified_by_challenge?: string | null
+          name?: string
+          object_id?: string
+          object_type?: string
+          path?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lab_world_objects_lab_id_fkey"
+            columns: ["lab_id"]
+            isOneToOne: false
+            referencedRelation: "learner_labs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learner_challenge_attempts: {
+        Row: {
+          attempts: number
+          best_score: number
+          challenge_id: string
+          completed_at: string | null
+          created_at: string
+          evidence: Json
+          id: string
+          started_at: string
+          status: string
+          updated_at: string
+          user_id: string
+          xp_awarded: number
+        }
+        Insert: {
+          attempts?: number
+          best_score?: number
+          challenge_id: string
+          completed_at?: string | null
+          created_at?: string
+          evidence?: Json
+          id?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          xp_awarded?: number
+        }
+        Update: {
+          attempts?: number
+          best_score?: number
+          challenge_id?: string
+          completed_at?: string | null
+          created_at?: string
+          evidence?: Json
+          id?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          xp_awarded?: number
+        }
+        Relationships: []
+      }
+      learner_challenge_events: {
+        Row: {
+          challenge_id: string
+          created_at: string
+          id: string
+          kind: string
+          payload: Json
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          created_at?: string
+          id?: string
+          kind: string
+          payload?: Json
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          payload?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
+      learner_hint_usage: {
+        Row: {
+          challenge_id: string
+          created_at: string
+          hint_level: number
+          id: string
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          created_at?: string
+          hint_level: number
+          id?: string
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          created_at?: string
+          hint_level?: number
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      learner_labs: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          lab_key: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          lab_key?: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          lab_key?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       learner_preferences: {
         Row: {
           created_at: string
@@ -82,6 +303,126 @@ export type Database = {
           id?: string
           linux_comfort_level?: Database["public"]["Enums"]["linux_comfort_level"]
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      learner_progression: {
+        Row: {
+          challenges_completed: number
+          created_at: string
+          id: string
+          labs_completed: number
+          level: number
+          total_xp: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          challenges_completed?: number
+          created_at?: string
+          id?: string
+          labs_completed?: number
+          level?: number
+          total_xp?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          challenges_completed?: number
+          created_at?: string
+          id?: string
+          labs_completed?: number
+          level?: number
+          total_xp?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      learner_skill_memory: {
+        Row: {
+          attempts: number
+          confidence: number
+          created_at: string
+          hint_dependency: number
+          id: string
+          last_practiced: string | null
+          mastery: number
+          next_review: string | null
+          recent_mistakes: string[]
+          recent_score: number | null
+          skill_id: string
+          successful_attempts: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          confidence?: number
+          created_at?: string
+          hint_dependency?: number
+          id?: string
+          last_practiced?: string | null
+          mastery?: number
+          next_review?: string | null
+          recent_mistakes?: string[]
+          recent_score?: number | null
+          skill_id: string
+          successful_attempts?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          confidence?: number
+          created_at?: string
+          hint_dependency?: number
+          id?: string
+          last_practiced?: string | null
+          mastery?: number
+          next_review?: string | null
+          recent_mistakes?: string[]
+          recent_score?: number | null
+          skill_id?: string
+          successful_attempts?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      learning_narrative_events: {
+        Row: {
+          challenge_id: string | null
+          created_at: string
+          event_id: string
+          event_type: string
+          importance: number
+          related_object_ids: string[]
+          related_skill_ids: string[]
+          summary: string
+          user_id: string
+        }
+        Insert: {
+          challenge_id?: string | null
+          created_at?: string
+          event_id?: string
+          event_type: string
+          importance?: number
+          related_object_ids?: string[]
+          related_skill_ids?: string[]
+          summary: string
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string | null
+          created_at?: string
+          event_id?: string
+          event_type?: string
+          importance?: number
+          related_object_ids?: string[]
+          related_skill_ids?: string[]
+          summary?: string
           user_id?: string
         }
         Relationships: []
