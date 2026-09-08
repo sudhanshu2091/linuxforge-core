@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Challenge engine orchestrator (server-only).
  *
@@ -7,6 +6,8 @@
  * authenticated server functions in `engine.functions.ts`.
  */
 
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 import { buildContext } from "./context.server";
 import { CONTRACTS, contractById, toBrief } from "./contracts.server";
 import { modelExecutor, type ModelObject, type World } from "./executor.server";
@@ -26,8 +27,24 @@ import type {
   WorldObjectView,
 } from "./types";
 
-type Db = { from: (table: string) => any };
+type Tables = Database["public"]["Tables"];
+type AttemptRow = Tables["learner_challenge_attempts"]["Row"];
+type ChallengeEventRow = Tables["learner_challenge_events"]["Row"];
+type HintRow = Tables["learner_hint_usage"]["Row"];
+
+export type Db = SupabaseClient<Database>;
 type Lang = "English" | "Hinglish" | "Mix both";
+
+/** Narrow an unknown JSON value to a plain object without widening to `any`. */
+function asRecord(value: unknown): Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+const asString = (value: unknown, fallback = ""): string => (typeof value === "string" ? value : fallback);
+
+
 
 const LAB_KEY = "forge-core";
 
