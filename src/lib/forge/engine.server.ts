@@ -177,27 +177,90 @@ async function loadHints(db: Db, userId: string, challengeId: string) {
   return res.data ?? [];
 }
 
-const attemptView = (row: any, challengeId: string): AttemptView => ({
+const STATUSES: readonly VerificationStatus[] = [
+  "COMPLETE",
+  "RESULT_CORRECT_SKILL_NOT_DEMONSTRATED",
+  "RESULT_INCORRECT_SKILL_DEMONSTRATED",
+  "INCOMPLETE",
+  "BLOCKED_BY_SAFETY_POLICY",
+];
+const isStatus = (v: unknown): v is VerificationStatus =>
+  typeof v === "string" && (STATUSES as readonly string[]).includes(v);
+
+const stringList = (v: unknown): string[] =>
+  Array.isArray(v) ? v.filter((i): i is string => typeof i === "string") : [];
+
+const attemptView = (row: AttemptRow | undefined, challengeId: string): AttemptView => ({
   challengeId,
-  status: (row?.status ?? "INCOMPLETE") as VerificationStatus,
+  status: isStatus(row?.status) ? row.status : "INCOMPLETE",
   attempts: row?.attempts ?? 0,
   bestScore: row?.best_score ?? 0,
   xpAwarded: row?.xp_awarded ?? 0,
   completedAt: row?.completed_at ?? null,
 });
 
-function transcriptFrom(events: any[]): TerminalLine[] {
+/** Rebuild the stored verification payload field-by-field (no unsafe casts). */
+function verificationFrom(events: ChallengeEventRow[]): Verification | null {
+  const ev = [...events].reverse().find((e) => e.kind === "verification");
+  if (!ev) return null;
+  const v = asRecord(asRecord(ev.payload)["verification"]);
+  if (!isStatus(v["status"])) return null;
+  const rawObjectives = v["objectives"];
+  return {
+    status: v["status"],
+    objectives: (Array.isArray(rawObjectives) ? rawObjectives : []).map((o) => {
+      const r = asRecord(o);
+      return { label: asString(r["label"]), met: r["met"] === true, evidence: asString(r["evidence"]) };
+    }),
+    score: typeof v["score"] === "number" ? v["score"] : 0,
+    message: asString(v["message"]),
+    remediation: stringList(v["remediation"]),
+    wentWell: stringList(v["wentWell"]),
+  };
+}
+
+/** Rebuild the stored observation payload field-by-field (advisory only). */
+function observationFrom(events: ChallengeEventRow[]): Observation | null {
+  const ev = [...events].reverse().find((e) => e.kind === "observation");
+  if (!ev) return null;
+  const o = asRecord(asRecord(ev.payload)["observation"]);
+  if (!o["intent"] && !o["coaching"]) return null;
+  const understanding = asString(o["conceptUnderstanding"], "partial");
+  const category = asString(o["category"]);
+  return {
+    intent: asString(o["intent"]),
+    approach: asString(o["approach"]),
+    skillTarget: stringList(o["skillTarget"]).filter(isSkillId),
+    category: OBSERVATION_CATEGORIES.find((c) => c === category) ?? null,
+    conceptUnderstanding: understanding === "unclear" || understanding === "solid" ? understanding : "partial",
+    skillDemonstrated: o["skillDemonstrated"] === true,
+    coaching: asString(o["coaching"]),
+  };
+}
+
+function transcriptFrom(events: ChallengeEventRow[]): TerminalLine[] {
   const lines: TerminalLine[] = [];
   for (const e of events) {
     if (e.kind !== "command") continue;
-    const p = e.payload ?? {};
-    lines.push({ kind: "input", text: `${p.cwdBefore ? `~/${p.cwdBefore}` : "~"}$ ${p.raw ?? ""}` });
-    for (const l of p.lines ?? []) lines.push({ kind: l.kind === "error" ? "error" : l.kind === "system" ? "system" : "output", text: l.text });
+    const p = asRecord(e.payload);
+    const cwdBefore = asString(p["cwdBefore"]);
+    lines.push({ kind: "input", text: `${cwdBefore ? `~/${cwdBefore}` : "~"}$ ${asString(p["raw"])}` });
+    const rawLines = p["lines"];
+    if (!Array.isArray(rawLines)) continue;
+    for (const item of rawLines) {
+      const l = asRecord(item);
+      const kind = asString(l["kind"], "output");
+      lines.push({
+        kind: kind === "error" ? "error" : kind === "system" ? "system" : "output",
+        text: asString(l["text"]),
+      });
+    }
   }
   return lines.slice(-120);
 }
 
-function pickNext(attempts: any[], skills: SkillMemoryView[], currentId: string): string | null {
+function pickNext(attempts: AttemptRow[], skills: SkillMemoryView[], currentId: string): string | null {
+
   const byId = new Map(attempts.map((a) => [a.challenge_id, a]));
   const done = (id: string) => byId.get(id)?.status === "COMPLETE";
   const weak = new Set(skills.filter((s) => s.attempts > 0 && s.mastery < 55).map((s) => s.skillId));
