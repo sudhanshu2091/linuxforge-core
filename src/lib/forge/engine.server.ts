@@ -450,7 +450,7 @@ export async function runLabCommand(
           lab_id: lab.id,
           object_type: m.objectType,
           path: m.path,
-          name: m.path.split("/").pop(),
+          name: m.path.split("/").pop() ?? m.path,
           created_by_challenge: challengeId,
           last_modified_by_challenge: challengeId,
           current_state: { permissions: m.permissions, content: m.content },
