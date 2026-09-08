@@ -313,9 +313,9 @@ export async function loadMissionState(
   ]);
 
   const attemptRow = attempts.find((a) => a.challenge_id === contract.id);
-  const lastVerification =
-    [...chEvents].reverse().find((e) => e.kind === "verification")?.payload?.verification ?? null;
-  const lastObservation = [...chEvents].reverse().find((e) => e.kind === "observation")?.payload?.observation ?? null;
+  const lastVerification = verificationFrom(chEvents);
+  const lastObservation = observationFrom(chEvents);
+
 
   const completed = new Set(attempts.filter((a) => a.status === "COMPLETE").map((a) => a.challenge_id));
 
