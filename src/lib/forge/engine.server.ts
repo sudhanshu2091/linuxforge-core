@@ -47,6 +47,25 @@ function asRecord(value: unknown): Record<string, unknown> {
 
 const asString = (value: unknown, fallback = ""): string => (typeof value === "string" ? value : fallback);
 
+const isSkillId = (value: string): value is SkillId => value in SKILL_LABELS;
+
+const OBSERVATION_CATEGORIES: readonly ObservationCategory[] = [
+  "TYPO",
+  "WRONG_COMMAND",
+  "WRONG_ARGUMENT",
+  "WRONG_PATH",
+  "WRONG_FILENAME",
+  "MISREAD_QUESTION",
+  "CONCEPT_CONFUSION",
+  "PARTIAL_UNDERSTANDING",
+  "UNSAFE_APPROACH",
+  "RANDOM_TRIAL_AND_ERROR",
+  "SKILL_BYPASS",
+  "VALID_ALTERNATIVE",
+  "INDEPENDENT_SOLUTION",
+];
+
+
 
 
 const LAB_KEY = "forge-core";
