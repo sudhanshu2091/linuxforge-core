@@ -292,7 +292,44 @@ function pickNext(attempts: AttemptRow[], skills: SkillMemoryView[], currentId: 
   return (weakFirst ?? open.sort((a, b) => a.order - b.order)[0])?.id ?? null;
 }
 
+/**
+ * Initialise-or-restore a mission.
+ *
+ * Never duplicates learner state: if the requested mission (or, with no
+ * request, the learner's story position) already has an attempt row, that row
+ * is resumed. A new row is created only when none exists.
+ */
+export async function startOrRestoreMission(
+  db: Db,
+  userId: string,
+  requestedId?: string,
+): Promise<{ challengeId: string; resumed: boolean }> {
+  await ensureLab(db, userId);
+  const attempts = await loadAttempts(db, userId);
+  const done = (id: string) => attempts.find((a) => a.challenge_id === id)?.status === "COMPLETE";
+
+  let challengeId = requestedId && contractById(requestedId) ? requestedId : null;
+  if (!challengeId) {
+    // Story position: the earliest unlocked, unfinished mission.
+    const inProgress = CONTRACTS.find((c) => !done(c.id) && attempts.some((a) => a.challenge_id === c.id));
+    const nextOpen = CONTRACTS.filter((c) => !done(c.id) && c.prerequisites.every(done)).sort(
+      (a, b) => a.order - b.order,
+    )[0];
+    challengeId = inProgress?.id ?? nextOpen?.id ?? CONTRACTS[0]!.id;
+  }
+
+  const existing = attempts.find((a) => a.challenge_id === challengeId);
+  if (existing) return { challengeId, resumed: true };
+
+  const created = await db
+    .from("learner_challenge_attempts")
+    .insert({ user_id: userId, challenge_id: challengeId, status: "INCOMPLETE" });
+  if (created.error && !`${created.error.message}`.includes("duplicate")) throw new Error(created.error.message);
+  return { challengeId, resumed: false };
+}
+
 export async function loadMissionState(
+
   db: Db,
   userId: string,
   challengeId: string,
