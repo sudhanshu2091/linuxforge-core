@@ -13,7 +13,10 @@ import { CONTRACTS, contractById, toBrief } from "./contracts.server";
 import { modelExecutor, type ModelObject, type World } from "./executor.server";
 import { deterministicObserver } from "./observer.server";
 import { verify } from "./verifier.server";
+import { SKILL_LABELS } from "./types";
 import type {
+  ObservationCategory,
+
   AttemptView,
   MissionState,
   NarrativeEventView,
