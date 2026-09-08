@@ -21,10 +21,13 @@ export type ModelObject = {
   name: string;
   permissions: string;
   content: string;
+  /** Soft-delete flag mirrored from persistence; only active objects are modelled. */
+  active: boolean;
   createdByChallenge: string | null;
   lastModifiedByChallenge: string | null;
   createdAt: string;
 };
+
 
 export type World = Map<string, ModelObject>;
 
