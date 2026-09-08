@@ -45,3 +45,12 @@ export const revealHint = createServerFn({ method: "POST" })
     const { revealNextHint } = await import("./engine.server");
     return revealNextHint(context.supabase as never, context.userId, data.challengeId);
   });
+
+/** Initialise-or-restore the learner's mission, then the UI routes to it. */
+export const startMission = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { challengeId?: string }) => data)
+  .handler(async ({ data, context }): Promise<{ challengeId: string; resumed: boolean }> => {
+    const { startOrRestoreMission } = await import("./engine.server");
+    return startOrRestoreMission(context.supabase as never, context.userId, data.challengeId);
+  });
