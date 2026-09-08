@@ -21,10 +21,13 @@ export type ModelObject = {
   name: string;
   permissions: string;
   content: string;
+  /** Soft-delete flag mirrored from persistence; only active objects are modelled. */
+  active: boolean;
   createdByChallenge: string | null;
   lastModifiedByChallenge: string | null;
   createdAt: string;
 };
+
 
 export type World = Map<string, ModelObject>;
 
@@ -154,7 +157,9 @@ function ensure(ctx: Ctx, path: string, objectType: "directory" | "file", perms:
     path,
     name: baseName(path),
     permissions: perms,
+    active: true,
     content: "",
+
     createdByChallenge: null,
     lastModifiedByChallenge: null,
     createdAt: new Date().toISOString(),
@@ -208,16 +213,16 @@ function runSimple(ctx: Ctx, raw: string) {
       return;
     case "cd": {
       const target = resolvePath(ctx.cwd, operands[0] ?? "~");
-      if (target === null) return ctx.lines.push({ kind: "error", text: `cd: ${operands[0]}: outside your lab workspace` });
+      if (target === null) { ctx.lines.push({ kind: "error", text: `cd: ${operands[0]}: outside your lab workspace` }); return; }
       if (target !== "" && ctx.world.get(target)?.objectType !== "directory")
-        return ctx.lines.push({ kind: "error", text: `cd: ${operands[0]}: Not a directory` });
+        { ctx.lines.push({ kind: "error", text: `cd: ${operands[0]}: Not a directory` }); return; }
       ctx.cwd = target;
       return;
     }
     case "ls": {
       const target = resolvePath(ctx.cwd, operands[0] ?? ".");
-      if (target === null) return notFound(operands[0] ?? ".");
-      if (target !== "" && !ctx.world.has(target)) return notFound(operands[0] ?? ".");
+      if (target === null) { notFound(operands[0] ?? "."); return; }
+      if (target !== "" && !ctx.world.has(target)) { notFound(operands[0] ?? "."); return; }
       const children = [...ctx.world.values()].filter((o) => parentOf(o.path) === target);
       if (children.length === 0) return;
       const long = flags.some((f) => f.includes("l"));
@@ -234,7 +239,7 @@ function runSimple(ctx: Ctx, raw: string) {
     }
     case "tree": {
       const all = [...ctx.world.values()].sort((a, b) => a.path.localeCompare(b.path));
-      if (all.length === 0) return ctx.lines.push({ kind: "system", text: "(workspace empty)" });
+      if (all.length === 0) { ctx.lines.push({ kind: "system", text: "(workspace empty)" }); return; }
       for (const o of all)
         ctx.lines.push({ kind: "output", text: `${"  ".repeat(o.path.split("/").length - 1)}${o.name}${o.objectType === "directory" ? "/" : ""}` });
       return;
@@ -242,17 +247,17 @@ function runSimple(ctx: Ctx, raw: string) {
     case "stat": {
       const target = resolvePath(ctx.cwd, operands[0] ?? "");
       const obj = target === null ? undefined : ctx.world.get(target);
-      if (!obj) return notFound(operands[0] ?? "");
+      if (!obj) { notFound(operands[0] ?? ""); return; }
       ctx.lines.push({ kind: "output", text: `  File: ${obj.name}` });
       ctx.lines.push({ kind: "output", text: `Access: (0${obj.permissions}/${octalToSymbolic(obj.objectType, obj.permissions)})  Uid: learner  Gid: learner` });
       return;
     }
     case "mkdir": {
-      if (operands.length === 0) return ctx.lines.push({ kind: "error", text: "mkdir: missing operand" });
+      if (operands.length === 0) { ctx.lines.push({ kind: "error", text: "mkdir: missing operand" }); return; }
       const parents = flags.some((f) => f.includes("p"));
       for (const op of operands) {
         const target = resolvePath(ctx.cwd, op);
-        if (target === null || target === "") return ctx.lines.push({ kind: "error", text: `mkdir: cannot create directory '${op}': outside your lab workspace` });
+        if (target === null || target === "") { ctx.lines.push({ kind: "error", text: `mkdir: cannot create directory '${op}': outside your lab workspace` }); return; }
         if (ctx.world.has(target)) {
           if (!parents) ctx.lines.push({ kind: "error", text: `mkdir: cannot create directory '${op}': File exists` });
           continue;
@@ -261,7 +266,7 @@ function runSimple(ctx: Ctx, raw: string) {
         for (let i = 1; i < segs.length; i++) {
           const parent = segs.slice(0, i).join("/");
           if (!ctx.world.has(parent)) {
-            if (!parents) return ctx.lines.push({ kind: "error", text: `mkdir: cannot create directory '${op}': No such file or directory` });
+            if (!parents) { ctx.lines.push({ kind: "error", text: `mkdir: cannot create directory '${op}': No such file or directory` }); return; }
             ensure(ctx, parent, "directory", DEFAULT_DIR_PERMS);
           }
         }
@@ -270,29 +275,29 @@ function runSimple(ctx: Ctx, raw: string) {
       return;
     }
     case "touch": {
-      if (operands.length === 0) return ctx.lines.push({ kind: "error", text: "touch: missing file operand" });
+      if (operands.length === 0) { ctx.lines.push({ kind: "error", text: "touch: missing file operand" }); return; }
       for (const op of operands) {
         const target = resolvePath(ctx.cwd, op);
-        if (target === null || target === "") return ctx.lines.push({ kind: "error", text: `touch: cannot touch '${op}': outside your lab workspace` });
+        if (target === null || target === "") { ctx.lines.push({ kind: "error", text: `touch: cannot touch '${op}': outside your lab workspace` }); return; }
         if (ctx.world.has(target)) {
           ctx.mutations.push({ kind: "update", path: target });
           ctx.operations += 1;
           continue;
         }
         if (parentOf(target) !== "" && !ctx.world.has(parentOf(target)))
-          return ctx.lines.push({ kind: "error", text: `touch: cannot touch '${op}': No such file or directory` });
+          { ctx.lines.push({ kind: "error", text: `touch: cannot touch '${op}': No such file or directory` }); return; }
         ensure(ctx, target, "file", DEFAULT_FILE_PERMS);
       }
       return;
     }
     case "echo": {
       const redirect = trimmed.match(/^echo\s+(.*?)\s*(>>?)\s*(\S+)\s*$/);
-      if (!redirect) return ctx.lines.push({ kind: "output", text: args.join(" ").replace(/^["']|["']$/g, "") });
+      if (!redirect) { ctx.lines.push({ kind: "output", text: args.join(" ").replace(/^["']|["']$/g, "") }); return; }
       const text = (redirect[1] as string).replace(/^["']|["']$/g, "");
       const target = resolvePath(ctx.cwd, redirect[3] as string);
-      if (target === null || target === "") return ctx.lines.push({ kind: "error", text: `echo: ${redirect[3]}: outside your lab workspace` });
+      if (target === null || target === "") { ctx.lines.push({ kind: "error", text: `echo: ${redirect[3]}: outside your lab workspace` }); return; }
       if (parentOf(target) !== "" && !ctx.world.has(parentOf(target)))
-        return ctx.lines.push({ kind: "error", text: `bash: ${redirect[3]}: No such file or directory` });
+        { ctx.lines.push({ kind: "error", text: `bash: ${redirect[3]}: No such file or directory` }); return; }
       const existing = ctx.world.get(target);
       const content = redirect[2] === ">>" && existing ? `${existing.content}${text}\n` : `${text}\n`;
       if (existing) {
@@ -310,20 +315,20 @@ function runSimple(ctx: Ctx, raw: string) {
     case "cat": {
       const target = resolvePath(ctx.cwd, operands[0] ?? "");
       const obj = target === null ? undefined : ctx.world.get(target);
-      if (!obj) return notFound(operands[0] ?? "");
-      if (obj.objectType === "directory") return ctx.lines.push({ kind: "error", text: `cat: ${obj.name}: Is a directory` });
+      if (!obj) { notFound(operands[0] ?? ""); return; }
+      if (obj.objectType === "directory") { ctx.lines.push({ kind: "error", text: `cat: ${obj.name}: Is a directory` }); return; }
       if (obj.content) for (const l of obj.content.split("\n")) if (l) ctx.lines.push({ kind: "output", text: l });
       return;
     }
     case "chmod": {
       const mode = operands[0];
       const pathArg = operands[1];
-      if (!mode || !pathArg) return ctx.lines.push({ kind: "error", text: "chmod: missing operand" });
+      if (!mode || !pathArg) { ctx.lines.push({ kind: "error", text: "chmod: missing operand" }); return; }
       const target = resolvePath(ctx.cwd, pathArg);
       const obj = target === null ? undefined : ctx.world.get(target);
-      if (!obj || target === null) return notFound(pathArg);
+      if (!obj || target === null) { notFound(pathArg); return; }
       const next = applyChmod(ctx, mode, obj);
-      if (next === null) return ctx.lines.push({ kind: "error", text: `chmod: invalid mode: '${mode}'` });
+      if (next === null) { ctx.lines.push({ kind: "error", text: `chmod: invalid mode: '${mode}'` }); return; }
       obj.permissions = next;
       ctx.mutations.push({ kind: "update", path: target, permissions: next });
       ctx.operations += 1;

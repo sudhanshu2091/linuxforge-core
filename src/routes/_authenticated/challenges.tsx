@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useCallback, useEffect, useState } from "react";
 import { Clock, Filter, Lightbulb, ListChecks, ShieldCheck, Swords, Trophy } from "lucide-react";
 import { AppShell } from "@/components/app/AppShell";
 import {
@@ -11,6 +12,10 @@ import {
   Tag,
   buttonClass,
 } from "@/components/kit/primitives";
+import { EmptyState, ErrorState, LoadingBlock } from "@/components/kit/states";
+import { getMissionState, startMission } from "@/lib/forge/engine.functions";
+import type { MissionState } from "@/lib/forge/types";
+
 
 export const Route = createFileRoute("/_authenticated/challenges")({
   head: () => ({
@@ -29,16 +34,47 @@ export const Route = createFileRoute("/_authenticated/challenges")({
 
 const filters = ["All", "Filesystem", "Processes", "Networking", "Logs", "Hardening"];
 
-const missions = [
-  { name: "Permissions rescue", level: "Recruit", tone: "primary" as const, xp: 120, time: "10 min" },
-  { name: "Hunt the runaway process", level: "Operator", tone: "accent" as const, xp: 180, time: "15 min" },
-  { name: "Read the auth log", level: "Operator", tone: "accent" as const, xp: 200, time: "20 min" },
-  { name: "Harden an SSH config", level: "Specialist", tone: "signal" as const, xp: 260, time: "25 min" },
-  { name: "Disk filled up overnight", level: "Specialist", tone: "signal" as const, xp: 240, time: "20 min" },
-  { name: "Triage a noisy service", level: "Architect", tone: "primary" as const, xp: 320, time: "30 min" },
-];
+type CatalogueEntry = MissionState["catalogue"][number];
+
+const toneFor = (difficulty: number) =>
+  difficulty >= 3 ? ("signal" as const) : difficulty === 2 ? ("accent" as const) : ("primary" as const);
+
+const levelFor = (difficulty: number) =>
+  difficulty >= 4 ? "Specialist" : difficulty === 3 ? "Operator" : "Recruit";
 
 function ChallengesPage() {
+  const navigate = useNavigate();
+  const [catalogue, setCatalogue] = useState<CatalogueEntry[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [starting, setStarting] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setError(null);
+    setCatalogue(null);
+    try {
+      const state = await getMissionState({ data: { challengeId: "C01" } });
+      setCatalogue(state.catalogue);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Missions could not be loaded right now.");
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const start = async (challengeId: string) => {
+    setStarting(challengeId);
+    try {
+      const res = await startMission({ data: { challengeId } });
+      await navigate({ to: "/mission", search: { c: res.challengeId } });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "That mission could not be opened right now.");
+    } finally {
+      setStarting(null);
+    }
+  };
+
   return (
     <AppShell>
       <PageHeader
@@ -68,33 +104,65 @@ function ChallengesPage() {
         <FutureTag className="ml-auto" label="Filtering later" />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {missions.map((m) => (
-          <Panel key={m.name} className="flex flex-col transition-colors hover:border-border-strong">
-            <div className="flex items-start justify-between gap-3">
-              <span className="flex size-9 items-center justify-center rounded-lg border border-border bg-surface-2 text-primary">
-                <Swords className="size-4" />
-              </span>
-              <Tag tone={m.tone}>{m.level}</Tag>
-            </div>
-            <h3 className="mt-4 text-sm font-semibold">{m.name}</h3>
-            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-              A short brief sets the scene; objectives verify the end state of the sandbox, not your keystrokes.
-            </p>
-            <div className="mt-4 flex items-center gap-4 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5">
-                <Trophy className="size-3.5" /> {m.xp} XP
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <Clock className="size-3.5" /> {m.time}
-              </span>
-            </div>
-            <Button variant="outline" size="sm" className="mt-5 w-full" disabled>
-              Start mission
-            </Button>
-          </Panel>
-        ))}
-      </div>
+      {error ? (
+        <ErrorState description={error} onRetry={() => void load()} />
+      ) : !catalogue ? (
+        <LoadingBlock />
+      ) : catalogue.length === 0 ? (
+        <EmptyState title="No missions available" description="Your mission catalogue is empty right now." />
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {catalogue.map((m) => {
+            const status = m.attempt?.status ?? null;
+            const complete = status === "COMPLETE";
+            return (
+              <Panel key={m.id} className="flex flex-col transition-colors hover:border-border-strong">
+                <div className="flex items-start justify-between gap-3">
+                  <span className="flex size-9 items-center justify-center rounded-lg border border-border bg-surface-2 text-primary">
+                    <Swords className="size-4" />
+                  </span>
+                  <Tag tone={complete ? "signal" : toneFor(m.difficulty)}>
+                    {complete ? "Complete" : levelFor(m.difficulty)}
+                  </Tag>
+                </div>
+                <h3 className="mt-4 text-sm font-semibold">
+                  <span className="font-mono text-xs text-muted-foreground">{m.id}</span> · {m.title}
+                </h3>
+                <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{m.objective}</p>
+                <div className="mt-4 flex items-center gap-4 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Trophy className="size-3.5" /> {m.xpReward} XP
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Clock className="size-3.5" /> {m.attempt?.attempts ?? 0} attempts
+                  </span>
+                </div>
+                {!m.unlocked && (
+                  <p className="mt-3 text-[11px] text-muted-foreground">
+                    Unlocks after {m.prerequisites.join(", ")}.
+                  </p>
+                )}
+                <Button
+                  variant={complete ? "ghost" : "outline"}
+                  size="sm"
+                  className="mt-5 w-full"
+                  disabled={!m.unlocked || starting !== null}
+                  onClick={() => void start(m.id)}
+                >
+                  {starting === m.id
+                    ? "Opening…"
+                    : complete
+                      ? "Revisit mission"
+                      : m.attempt
+                        ? "Resume mission"
+                        : "Start mission"}
+                </Button>
+              </Panel>
+            );
+          })}
+        </div>
+      )}
+
 
       {/* Single challenge shell */}
       <div className="mt-10">

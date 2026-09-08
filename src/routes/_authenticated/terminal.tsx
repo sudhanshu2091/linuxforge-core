@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { FolderTree, Play, RotateCcw, ShieldAlert, ShieldCheck, SquareTerminal, BookMarked } from "lucide-react";
 import { AppShell } from "@/components/app/AppShell";
 import {
@@ -11,6 +12,9 @@ import {
   Tag,
   buttonClass,
 } from "@/components/kit/primitives";
+import { ErrorState } from "@/components/kit/states";
+import { startMission } from "@/lib/forge/engine.functions";
+
 
 export const Route = createFileRoute("/_authenticated/terminal")({
   head: () => ({
@@ -45,7 +49,25 @@ const cheats = [
 ];
 
 function TerminalPage() {
+  const navigate = useNavigate();
+  const [opening, setOpening] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
+
+  const openLab = async () => {
+    setOpening(true);
+    setStartError(null);
+    try {
+      const res = await startMission({ data: {} });
+      await navigate({ to: "/mission", search: { c: res.challengeId } });
+    } catch (e) {
+      setStartError(e instanceof Error ? e.message : "The lab could not be opened right now.");
+    } finally {
+      setOpening(false);
+    }
+  };
+
   return (
+
     <AppShell>
       <PageHeader
         eyebrow="Practice terminal"
@@ -133,16 +155,30 @@ function TerminalPage() {
           </Panel>
 
           <Panel>
-            <PanelHeader title="Drill objectives" subtitle="Attach a lab to this shell" />
-            <FutureSurface
-              title="No drill attached"
-              description="Selecting a challenge will pin its objectives beside the shell."
-            >
-              <Link to="/challenges" className={buttonClass({ variant: "outline", size: "sm" })}>
-                Browse challenges
-              </Link>
-            </FutureSurface>
+            <PanelHeader title="Story lab" subtitle="Your modelled training lab" />
+            {startError ? (
+              <ErrorState description={startError} onRetry={() => void openLab()} />
+            ) : (
+              <>
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Your saved lab keeps every folder, file and permission you set. Continue where the story left off.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-4 w-full"
+                  disabled={opening}
+                  onClick={() => void openLab()}
+                >
+                  {opening ? "Opening…" : "Continue story lab"}
+                </Button>
+                <Link to="/challenges" className={buttonClass({ variant: "ghost", size: "sm" }) + " mt-2 w-full"}>
+                  Browse challenges
+                </Link>
+              </>
+            )}
           </Panel>
+
         </div>
       </div>
     </AppShell>

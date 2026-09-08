@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Challenge engine orchestrator (server-only).
  *
@@ -7,12 +6,17 @@
  * authenticated server functions in `engine.functions.ts`.
  */
 
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 import { buildContext } from "./context.server";
 import { CONTRACTS, contractById, toBrief } from "./contracts.server";
 import { modelExecutor, type ModelObject, type World } from "./executor.server";
 import { deterministicObserver } from "./observer.server";
 import { verify } from "./verifier.server";
+import { SKILL_LABELS } from "./types";
 import type {
+  ObservationCategory,
+
   AttemptView,
   MissionState,
   NarrativeEventView,
@@ -26,8 +30,43 @@ import type {
   WorldObjectView,
 } from "./types";
 
-type Db = { from: (table: string) => any };
+type Tables = Database["public"]["Tables"];
+type AttemptRow = Tables["learner_challenge_attempts"]["Row"];
+type ChallengeEventRow = Tables["learner_challenge_events"]["Row"];
+type HintRow = Tables["learner_hint_usage"]["Row"];
+
+export type Db = SupabaseClient<Database>;
 type Lang = "English" | "Hinglish" | "Mix both";
+
+/** Narrow an unknown JSON value to a plain object without widening to `any`. */
+function asRecord(value: unknown): Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+const asString = (value: unknown, fallback = ""): string => (typeof value === "string" ? value : fallback);
+
+const isSkillId = (value: string): value is SkillId => value in SKILL_LABELS;
+
+const OBSERVATION_CATEGORIES: readonly ObservationCategory[] = [
+  "TYPO",
+  "WRONG_COMMAND",
+  "WRONG_ARGUMENT",
+  "WRONG_PATH",
+  "WRONG_FILENAME",
+  "MISREAD_QUESTION",
+  "CONCEPT_CONFUSION",
+  "PARTIAL_UNDERSTANDING",
+  "UNSAFE_APPROACH",
+  "RANDOM_TRIAL_AND_ERROR",
+  "SKILL_BYPASS",
+  "VALID_ALTERNATIVE",
+  "INDEPENDENT_SOLUTION",
+];
+
+
+
 
 const LAB_KEY = "forge-core";
 
@@ -55,18 +94,21 @@ async function loadWorld(db: Db, userId: string, labId: string) {
   const world: World = new Map();
   const views: WorldObjectView[] = [];
   for (const r of res.data ?? []) {
-    const state = (r.current_state ?? {}) as { permissions?: string; content?: string };
+    const state = asRecord(r.current_state);
+    const objectType = r.object_type === "directory" ? ("directory" as const) : ("file" as const);
     const obj: ModelObject = {
       objectId: r.object_id,
-      objectType: r.object_type,
+      objectType,
       path: r.path,
       name: r.name,
-      permissions: state.permissions ?? (r.object_type === "directory" ? "755" : "644"),
-      content: state.content ?? "",
+      permissions: asString(state["permissions"], objectType === "directory" ? "755" : "644"),
+      content: asString(state["content"], ""),
+      active: true,
       createdByChallenge: r.created_by_challenge ?? null,
       lastModifiedByChallenge: r.last_modified_by_challenge ?? null,
       createdAt: r.created_at,
     };
+
     world.set(obj.path, obj);
     views.push({
       objectId: obj.objectId,
@@ -86,13 +128,13 @@ async function loadWorld(db: Db, userId: string, labId: string) {
 async function loadAttempts(db: Db, userId: string) {
   const res = await db.from("learner_challenge_attempts").select("*").eq("user_id", userId);
   if (res.error) throw new Error(res.error.message);
-  return (res.data ?? []) as any[];
+  return res.data ?? [];
 }
 
 async function loadSkills(db: Db, userId: string): Promise<SkillMemoryView[]> {
   const res = await db.from("learner_skill_memory").select("*").eq("user_id", userId);
   if (res.error) throw new Error(res.error.message);
-  return (res.data ?? []).map((r: any) => ({
+  return (res.data ?? []).map((r) => ({
     skillId: r.skill_id as SkillId,
     mastery: r.mastery,
     attempts: r.attempts,
@@ -114,7 +156,7 @@ async function loadEvents(db: Db, userId: string): Promise<NarrativeEventView[]>
     .order("created_at", { ascending: false })
     .limit(30);
   if (res.error) throw new Error(res.error.message);
-  return (res.data ?? []).map((r: any) => ({
+  return (res.data ?? []).map((r) => ({
     eventId: r.event_id,
     challengeId: r.challenge_id ?? null,
     eventType: r.event_type,
@@ -143,7 +185,7 @@ async function loadChallengeEvents(db: Db, userId: string, challengeId: string) 
     .order("created_at", { ascending: true })
     .limit(200);
   if (res.error) throw new Error(res.error.message);
-  return (res.data ?? []) as any[];
+  return res.data ?? [];
 }
 
 async function loadHints(db: Db, userId: string, challengeId: string) {
@@ -154,30 +196,93 @@ async function loadHints(db: Db, userId: string, challengeId: string) {
     .eq("challenge_id", challengeId)
     .order("hint_level", { ascending: true });
   if (res.error) throw new Error(res.error.message);
-  return (res.data ?? []) as any[];
+  return res.data ?? [];
 }
 
-const attemptView = (row: any, challengeId: string): AttemptView => ({
+const STATUSES: readonly VerificationStatus[] = [
+  "COMPLETE",
+  "RESULT_CORRECT_SKILL_NOT_DEMONSTRATED",
+  "RESULT_INCORRECT_SKILL_DEMONSTRATED",
+  "INCOMPLETE",
+  "BLOCKED_BY_SAFETY_POLICY",
+];
+const isStatus = (v: unknown): v is VerificationStatus =>
+  typeof v === "string" && (STATUSES as readonly string[]).includes(v);
+
+const stringList = (v: unknown): string[] =>
+  Array.isArray(v) ? v.filter((i): i is string => typeof i === "string") : [];
+
+const attemptView = (row: AttemptRow | undefined, challengeId: string): AttemptView => ({
   challengeId,
-  status: (row?.status ?? "INCOMPLETE") as VerificationStatus,
+  status: isStatus(row?.status) ? row.status : "INCOMPLETE",
   attempts: row?.attempts ?? 0,
   bestScore: row?.best_score ?? 0,
   xpAwarded: row?.xp_awarded ?? 0,
   completedAt: row?.completed_at ?? null,
 });
 
-function transcriptFrom(events: any[]): TerminalLine[] {
+/** Rebuild the stored verification payload field-by-field (no unsafe casts). */
+function verificationFrom(events: ChallengeEventRow[]): Verification | null {
+  const ev = [...events].reverse().find((e) => e.kind === "verification");
+  if (!ev) return null;
+  const v = asRecord(asRecord(ev.payload)["verification"]);
+  if (!isStatus(v["status"])) return null;
+  const rawObjectives = v["objectives"];
+  return {
+    status: v["status"],
+    objectives: (Array.isArray(rawObjectives) ? rawObjectives : []).map((o) => {
+      const r = asRecord(o);
+      return { label: asString(r["label"]), met: r["met"] === true, evidence: asString(r["evidence"]) };
+    }),
+    score: typeof v["score"] === "number" ? v["score"] : 0,
+    message: asString(v["message"]),
+    remediation: stringList(v["remediation"]),
+    wentWell: stringList(v["wentWell"]),
+  };
+}
+
+/** Rebuild the stored observation payload field-by-field (advisory only). */
+function observationFrom(events: ChallengeEventRow[]): Observation | null {
+  const ev = [...events].reverse().find((e) => e.kind === "observation");
+  if (!ev) return null;
+  const o = asRecord(asRecord(ev.payload)["observation"]);
+  if (!o["intent"] && !o["coaching"]) return null;
+  const understanding = asString(o["conceptUnderstanding"], "partial");
+  const category = asString(o["category"]);
+  return {
+    intent: asString(o["intent"]),
+    approach: asString(o["approach"]),
+    skillTarget: stringList(o["skillTarget"]).filter(isSkillId),
+    category: OBSERVATION_CATEGORIES.find((c) => c === category) ?? null,
+    conceptUnderstanding: understanding === "unclear" || understanding === "solid" ? understanding : "partial",
+    skillDemonstrated: o["skillDemonstrated"] === true,
+    coaching: asString(o["coaching"]),
+  };
+}
+
+function transcriptFrom(events: ChallengeEventRow[]): TerminalLine[] {
   const lines: TerminalLine[] = [];
   for (const e of events) {
     if (e.kind !== "command") continue;
-    const p = e.payload ?? {};
-    lines.push({ kind: "input", text: `${p.cwdBefore ? `~/${p.cwdBefore}` : "~"}$ ${p.raw ?? ""}` });
-    for (const l of p.lines ?? []) lines.push({ kind: l.kind === "error" ? "error" : l.kind === "system" ? "system" : "output", text: l.text });
+    const p = asRecord(e.payload);
+    const cwdBefore = asString(p["cwdBefore"]);
+    lines.push({ kind: "input", text: `${cwdBefore ? `~/${cwdBefore}` : "~"}$ ${asString(p["raw"])}` });
+    const rawLines = p["lines"];
+    if (!Array.isArray(rawLines)) continue;
+    for (const item of rawLines) {
+      const l = asRecord(item);
+      const kind = asString(l["kind"], "output");
+      lines.push({
+        kind: kind === "error" ? "error" : kind === "system" ? "system" : "output",
+        text: asString(l["text"]),
+      });
+    }
   }
   return lines.slice(-120);
 }
 
-function pickNext(attempts: any[], skills: SkillMemoryView[], currentId: string): string | null {
+function pickNext(attempts: AttemptRow[], skills: SkillMemoryView[], currentId: string): string | null {
+
   const byId = new Map(attempts.map((a) => [a.challenge_id, a]));
   const done = (id: string) => byId.get(id)?.status === "COMPLETE";
   const weak = new Set(skills.filter((s) => s.attempts > 0 && s.mastery < 55).map((s) => s.skillId));
@@ -187,7 +292,44 @@ function pickNext(attempts: any[], skills: SkillMemoryView[], currentId: string)
   return (weakFirst ?? open.sort((a, b) => a.order - b.order)[0])?.id ?? null;
 }
 
+/**
+ * Initialise-or-restore a mission.
+ *
+ * Never duplicates learner state: if the requested mission (or, with no
+ * request, the learner's story position) already has an attempt row, that row
+ * is resumed. A new row is created only when none exists.
+ */
+export async function startOrRestoreMission(
+  db: Db,
+  userId: string,
+  requestedId?: string,
+): Promise<{ challengeId: string; resumed: boolean }> {
+  await ensureLab(db, userId);
+  const attempts = await loadAttempts(db, userId);
+  const done = (id: string) => attempts.find((a) => a.challenge_id === id)?.status === "COMPLETE";
+
+  let challengeId = requestedId && contractById(requestedId) ? requestedId : null;
+  if (!challengeId) {
+    // Story position: the earliest unlocked, unfinished mission.
+    const inProgress = CONTRACTS.find((c) => !done(c.id) && attempts.some((a) => a.challenge_id === c.id));
+    const nextOpen = CONTRACTS.filter((c) => !done(c.id) && c.prerequisites.every(done)).sort(
+      (a, b) => a.order - b.order,
+    )[0];
+    challengeId = inProgress?.id ?? nextOpen?.id ?? CONTRACTS[0]!.id;
+  }
+
+  const existing = attempts.find((a) => a.challenge_id === challengeId);
+  if (existing) return { challengeId, resumed: true };
+
+  const created = await db
+    .from("learner_challenge_attempts")
+    .insert({ user_id: userId, challenge_id: challengeId, status: "INCOMPLETE" });
+  if (created.error && !`${created.error.message}`.includes("duplicate")) throw new Error(created.error.message);
+  return { challengeId, resumed: false };
+}
+
 export async function loadMissionState(
+
   db: Db,
   userId: string,
   challengeId: string,
@@ -208,9 +350,9 @@ export async function loadMissionState(
   ]);
 
   const attemptRow = attempts.find((a) => a.challenge_id === contract.id);
-  const lastVerification =
-    [...chEvents].reverse().find((e) => e.kind === "verification")?.payload?.verification ?? null;
-  const lastObservation = [...chEvents].reverse().find((e) => e.kind === "observation")?.payload?.observation ?? null;
+  const lastVerification = verificationFrom(chEvents);
+  const lastObservation = observationFrom(chEvents);
+
 
   const completed = new Set(attempts.filter((a) => a.status === "COMPLETE").map((a) => a.challenge_id));
 
@@ -250,8 +392,8 @@ export async function loadMissionState(
       level: progression.level,
       challengesCompleted: progression.challenges_completed,
     },
-    lastVerification: lastVerification as Verification | null,
-    lastObservation: lastObservation as Observation | null,
+    lastVerification,
+    lastObservation,
     nextChallengeId: pickNext(attempts, skills, contract.id),
   };
 }
@@ -329,8 +471,9 @@ export async function runLabCommand(
 
   const priorCommands: string[] = priorEvents
     .filter((e) => e.kind === "command")
-    .flatMap((e) => (e.payload?.commands ?? []) as string[]);
-  const priorLoop = priorEvents.some((e) => e.kind === "command" && e.payload?.usedLoop);
+    .flatMap((e) => stringList(asRecord(e.payload)["commands"]));
+  const priorLoop = priorEvents.some((e) => e.kind === "command" && asRecord(e.payload)["usedLoop"] === true);
+
 
   const execution = modelExecutor.execute(world, cwd, raw);
 
@@ -344,7 +487,7 @@ export async function runLabCommand(
           lab_id: lab.id,
           object_type: m.objectType,
           path: m.path,
-          name: m.path.split("/").pop(),
+          name: m.path.split("/").pop() ?? m.path,
           created_by_challenge: challengeId,
           last_modified_by_challenge: challengeId,
           current_state: { permissions: m.permissions, content: m.content },

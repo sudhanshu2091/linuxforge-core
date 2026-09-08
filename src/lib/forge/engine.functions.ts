@@ -11,7 +11,7 @@ export const getMissionState = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<MissionState> => {
     const { loadMissionState } = await import("./engine.server");
     return loadMissionState(
-      context.supabase as never,
+      context.supabase,
       context.userId,
       data.challengeId ?? "C01",
       data.cwd ?? "",
@@ -29,7 +29,7 @@ export const runCommand = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<RunResult> => {
     const { runLabCommand } = await import("./engine.server");
     return runLabCommand(
-      context.supabase as never,
+      context.supabase,
       context.userId,
       data.challengeId,
       data.command,
@@ -43,5 +43,14 @@ export const revealHint = createServerFn({ method: "POST" })
   .inputValidator((data: { challengeId: string }) => data)
   .handler(async ({ data, context }) => {
     const { revealNextHint } = await import("./engine.server");
-    return revealNextHint(context.supabase as never, context.userId, data.challengeId);
+    return revealNextHint(context.supabase, context.userId, data.challengeId);
+  });
+
+/** Initialise-or-restore the learner's mission, then the UI routes to it. */
+export const startMission = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { challengeId?: string }) => data)
+  .handler(async ({ data, context }): Promise<{ challengeId: string; resumed: boolean }> => {
+    const { startOrRestoreMission } = await import("./engine.server");
+    return startOrRestoreMission(context.supabase, context.userId, data.challengeId);
   });
