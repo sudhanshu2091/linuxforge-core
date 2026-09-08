@@ -157,7 +157,7 @@ function TerminalPage() {
           <Panel>
             <PanelHeader title="Story lab" subtitle="Your modelled training lab" />
             {startError ? (
-              <ErrorState message={startError} onRetry={() => void openLab()} />
+              <ErrorState description={startError} onRetry={() => void openLab()} />
             ) : (
               <>
                 <p className="text-xs leading-relaxed text-muted-foreground">

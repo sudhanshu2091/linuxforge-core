@@ -105,9 +105,9 @@ function ChallengesPage() {
       </div>
 
       {error ? (
-        <ErrorState message={error} onRetry={() => void load()} />
+        <ErrorState description={error} onRetry={() => void load()} />
       ) : !catalogue ? (
-        <LoadingBlock label="Loading your story missions" />
+        <LoadingBlock />
       ) : catalogue.length === 0 ? (
         <EmptyState title="No missions available" description="Your mission catalogue is empty right now." />
       ) : (
