@@ -157,7 +157,9 @@ function ensure(ctx: Ctx, path: string, objectType: "directory" | "file", perms:
     path,
     name: baseName(path),
     permissions: perms,
+    active: true,
     content: "",
+
     createdByChallenge: null,
     lastModifiedByChallenge: null,
     createdAt: new Date().toISOString(),
