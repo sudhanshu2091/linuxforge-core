@@ -106,13 +106,13 @@ async function loadWorld(db: Db, userId: string, labId: string) {
 async function loadAttempts(db: Db, userId: string) {
   const res = await db.from("learner_challenge_attempts").select("*").eq("user_id", userId);
   if (res.error) throw new Error(res.error.message);
-  return (res.data ?? []) as any[];
+  return res.data ?? [];
 }
 
 async function loadSkills(db: Db, userId: string): Promise<SkillMemoryView[]> {
   const res = await db.from("learner_skill_memory").select("*").eq("user_id", userId);
   if (res.error) throw new Error(res.error.message);
-  return (res.data ?? []).map((r: any) => ({
+  return (res.data ?? []).map((r) => ({
     skillId: r.skill_id as SkillId,
     mastery: r.mastery,
     attempts: r.attempts,
@@ -134,7 +134,7 @@ async function loadEvents(db: Db, userId: string): Promise<NarrativeEventView[]>
     .order("created_at", { ascending: false })
     .limit(30);
   if (res.error) throw new Error(res.error.message);
-  return (res.data ?? []).map((r: any) => ({
+  return (res.data ?? []).map((r) => ({
     eventId: r.event_id,
     challengeId: r.challenge_id ?? null,
     eventType: r.event_type,
@@ -163,7 +163,7 @@ async function loadChallengeEvents(db: Db, userId: string, challengeId: string) 
     .order("created_at", { ascending: true })
     .limit(200);
   if (res.error) throw new Error(res.error.message);
-  return (res.data ?? []) as any[];
+  return res.data ?? [];
 }
 
 async function loadHints(db: Db, userId: string, challengeId: string) {
@@ -174,7 +174,7 @@ async function loadHints(db: Db, userId: string, challengeId: string) {
     .eq("challenge_id", challengeId)
     .order("hint_level", { ascending: true });
   if (res.error) throw new Error(res.error.message);
-  return (res.data ?? []) as any[];
+  return res.data ?? [];
 }
 
 const attemptView = (row: any, challengeId: string): AttemptView => ({
