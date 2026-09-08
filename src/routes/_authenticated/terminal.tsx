@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { FolderTree, Play, RotateCcw, ShieldAlert, ShieldCheck, SquareTerminal, BookMarked } from "lucide-react";
 import { AppShell } from "@/components/app/AppShell";
 import {
@@ -11,6 +12,9 @@ import {
   Tag,
   buttonClass,
 } from "@/components/kit/primitives";
+import { ErrorState } from "@/components/kit/states";
+import { startMission } from "@/lib/forge/engine.functions";
+
 
 export const Route = createFileRoute("/_authenticated/terminal")({
   head: () => ({
