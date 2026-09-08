@@ -355,8 +355,8 @@ export async function loadMissionState(
       level: progression.level,
       challengesCompleted: progression.challenges_completed,
     },
-    lastVerification: lastVerification as Verification | null,
-    lastObservation: lastObservation as Observation | null,
+    lastVerification,
+    lastObservation,
     nextChallengeId: pickNext(attempts, skills, contract.id),
   };
 }
