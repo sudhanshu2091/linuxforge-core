@@ -49,7 +49,25 @@ const cheats = [
 ];
 
 function TerminalPage() {
+  const navigate = useNavigate();
+  const [opening, setOpening] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
+
+  const openLab = async () => {
+    setOpening(true);
+    setStartError(null);
+    try {
+      const res = await startMission({ data: {} });
+      await navigate({ to: "/mission", search: { c: res.challengeId } });
+    } catch (e) {
+      setStartError(e instanceof Error ? e.message : "The lab could not be opened right now.");
+    } finally {
+      setOpening(false);
+    }
+  };
+
   return (
+
     <AppShell>
       <PageHeader
         eyebrow="Practice terminal"
