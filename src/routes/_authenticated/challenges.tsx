@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useCallback, useEffect, useState } from "react";
 import { Clock, Filter, Lightbulb, ListChecks, ShieldCheck, Swords, Trophy } from "lucide-react";
 import { AppShell } from "@/components/app/AppShell";
 import {
@@ -11,6 +12,10 @@ import {
   Tag,
   buttonClass,
 } from "@/components/kit/primitives";
+import { EmptyState, ErrorState, LoadingBlock } from "@/components/kit/states";
+import { getMissionState, startMission } from "@/lib/forge/engine.functions";
+import type { MissionState } from "@/lib/forge/types";
+
 
 export const Route = createFileRoute("/_authenticated/challenges")({
   head: () => ({
