@@ -434,8 +434,9 @@ export async function runLabCommand(
 
   const priorCommands: string[] = priorEvents
     .filter((e) => e.kind === "command")
-    .flatMap((e) => (e.payload?.commands ?? []) as string[]);
-  const priorLoop = priorEvents.some((e) => e.kind === "command" && e.payload?.usedLoop);
+    .flatMap((e) => stringList(asRecord(e.payload)["commands"]));
+  const priorLoop = priorEvents.some((e) => e.kind === "command" && asRecord(e.payload)["usedLoop"] === true);
+
 
   const execution = modelExecutor.execute(world, cwd, raw);
 
