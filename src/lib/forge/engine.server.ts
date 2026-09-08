@@ -72,18 +72,21 @@ async function loadWorld(db: Db, userId: string, labId: string) {
   const world: World = new Map();
   const views: WorldObjectView[] = [];
   for (const r of res.data ?? []) {
-    const state = (r.current_state ?? {}) as { permissions?: string; content?: string };
+    const state = asRecord(r.current_state);
+    const objectType = r.object_type === "directory" ? ("directory" as const) : ("file" as const);
     const obj: ModelObject = {
       objectId: r.object_id,
-      objectType: r.object_type,
+      objectType,
       path: r.path,
       name: r.name,
-      permissions: state.permissions ?? (r.object_type === "directory" ? "755" : "644"),
-      content: state.content ?? "",
+      permissions: asString(state["permissions"], objectType === "directory" ? "755" : "644"),
+      content: asString(state["content"], ""),
+      active: true,
       createdByChallenge: r.created_by_challenge ?? null,
       lastModifiedByChallenge: r.last_modified_by_challenge ?? null,
       createdAt: r.created_at,
     };
+
     world.set(obj.path, obj);
     views.push({
       objectId: obj.objectId,
