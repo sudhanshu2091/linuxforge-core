@@ -10,7 +10,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { buildContext } from "./context.server";
 import { CONTRACTS, contractById, toBrief } from "./contracts.server";
-import { modelExecutor, type ModelObject, type World } from "./executor.server";
+import type { ModelObject, World } from "./executor.server";
+import { ensureLabSession, executeInLab } from "./sandbox/lab.server";
 import { deterministicObserver } from "./observer.server";
 import { verify } from "./verifier.server";
 import { SKILL_LABELS } from "./types";
@@ -584,7 +585,7 @@ export async function runLabCommand(
     if (res.error) throw new Error(res.error.message);
   }
 
-  if (!execution.blocked && (nowComplete || execution.mutations.length > 0)) {
+  if (!execution.blocked && (nowComplete || execution.mutationCount > 0)) {
     await db.from("learning_narrative_events").insert({
       user_id: userId,
       challenge_id: challengeId,
