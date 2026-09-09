@@ -14,22 +14,16 @@
  * plug into later. `modelExecutor` is the only implementation today.
  */
 
-export type ModelObject = {
-  objectId: string;
-  objectType: "directory" | "file";
-  path: string;
-  name: string;
-  permissions: string;
-  content: string;
-  /** Soft-delete flag mirrored from persistence; only active objects are modelled. */
-  active: boolean;
-  createdByChallenge: string | null;
-  lastModifiedByChallenge: string | null;
-  createdAt: string;
-};
+import type { SandboxFsObject, SandboxFsView } from "./sandbox/contract";
 
+/**
+ * The modelled object/world shapes are the provider-neutral observation types
+ * from the sandbox contract, so the verifier and contracts depend on the
+ * contract rather than on this executor.
+ */
+export type ModelObject = SandboxFsObject;
+export type World = SandboxFsView;
 
-export type World = Map<string, ModelObject>;
 
 export type Mutation =
   | { kind: "create"; path: string; objectType: "directory" | "file"; permissions: string; content: string }

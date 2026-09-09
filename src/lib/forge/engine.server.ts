@@ -10,7 +10,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { buildContext } from "./context.server";
 import { CONTRACTS, contractById, toBrief } from "./contracts.server";
-import { modelExecutor, type ModelObject, type World } from "./executor.server";
+import type { ModelObject, World } from "./executor.server";
+import { ensureLabSession, executeInLab } from "./sandbox/lab.server";
 import { deterministicObserver } from "./observer.server";
 import { verify } from "./verifier.server";
 import { SKILL_LABELS } from "./types";
@@ -463,8 +464,12 @@ export async function runLabCommand(
   const contract = contractById(challengeId);
   if (!contract) throw new Error("Unknown mission");
 
-  const lab = await ensureLab(db, userId);
-  const { world } = await loadWorld(db, userId, lab.id);
+  // Execution is dispatched through the sandbox provider boundary only. The
+  // engine never contains command-execution logic and never touches a host.
+  const sessionRes = await ensureLabSession(db, userId);
+  if (!sessionRes.ok) throw new Error(`Lab environment unavailable: ${sessionRes.error.message}`);
+  const session = sessionRes.value;
+
   const priorEvents = await loadChallengeEvents(db, userId, challengeId);
   const hintRows = await loadHints(db, userId, challengeId);
   const hintsUsed = hintRows.length;
@@ -474,41 +479,29 @@ export async function runLabCommand(
     .flatMap((e) => stringList(asRecord(e.payload)["commands"]));
   const priorLoop = priorEvents.some((e) => e.kind === "command" && asRecord(e.payload)["usedLoop"] === true);
 
+  const dispatched = await executeInLab(db, userId, session, { kind: "raw-shell", data: raw }, cwd, challengeId);
+  if (!dispatched.ok) throw new Error(dispatched.error.message);
+  const record = dispatched.value;
 
-  const execution = modelExecutor.execute(world, cwd, raw);
+  // Post-execution observed state, as reported by the provider.
+  const world: World = new Map(record.stateAfter.filesystem.objects.map((o) => [o.path, o]));
 
-  // Persist modelled world changes the learner actually made.
-  for (const m of execution.mutations) {
-    if (m.kind === "create") {
-      const res = await db
-        .from("lab_world_objects")
-        .insert({
-          user_id: userId,
-          lab_id: lab.id,
-          object_type: m.objectType,
-          path: m.path,
-          name: m.path.split("/").pop() ?? m.path,
-          created_by_challenge: challengeId,
-          last_modified_by_challenge: challengeId,
-          current_state: { permissions: m.permissions, content: m.content },
-        })
-        .select("object_id")
-        .maybeSingle();
-      if (res.error && !`${res.error.message}`.includes("duplicate")) throw new Error(res.error.message);
-    } else {
-      const obj = world.get(m.path);
-      const res = await db
-        .from("lab_world_objects")
-        .update({
-          current_state: { permissions: m.permissions ?? obj?.permissions ?? "644", content: m.content ?? obj?.content ?? "" },
-          last_modified_by_challenge: challengeId,
-        })
-        .eq("user_id", userId)
-        .eq("lab_id", lab.id)
-        .eq("path", m.path);
-      if (res.error) throw new Error(res.error.message);
-    }
-  }
+  const execution = {
+    lines: record.chunks.map((c) => ({
+      kind: c.stream === "stderr" ? ("error" as const) : c.stream === "system" ? ("system" as const) : ("output" as const),
+      text: c.text,
+    })),
+    cwd: record.cwdAfter,
+    blocked: record.blocked,
+    evidence: {
+      usedLoop: record.method.usedLoopConstruct,
+      operations: record.method.effectiveOperations,
+      invocations: record.method.invocations,
+      commands: record.method.statements,
+    },
+    mutationCount: record.deltas.filesystem.length,
+  };
+
 
   const evidence = {
     usedLoop: execution.evidence.usedLoop || priorLoop,
@@ -592,7 +585,7 @@ export async function runLabCommand(
     if (res.error) throw new Error(res.error.message);
   }
 
-  if (!execution.blocked && (nowComplete || execution.mutations.length > 0)) {
+  if (!execution.blocked && (nowComplete || execution.mutationCount > 0)) {
     await db.from("learning_narrative_events").insert({
       user_id: userId,
       challenge_id: challengeId,

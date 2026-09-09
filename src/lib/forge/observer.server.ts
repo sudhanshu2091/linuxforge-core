@@ -19,7 +19,9 @@ import type { Observation, Verification } from "./types";
 export type ObserverInput = {
   contract: Contract;
   raw: string;
-  execution: ExecutionResult;
+  /** Provider-neutral slice of the execution observation (never provider logic). */
+  execution: Pick<ExecutionResult, "lines" | "blocked" | "evidence">;
+
   verification: Verification;
   /** Commands recorded across this attempt, oldest first. */
   history: string[];

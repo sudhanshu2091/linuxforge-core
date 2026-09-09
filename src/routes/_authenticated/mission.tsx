@@ -176,7 +176,7 @@ function MissionPage() {
         actions={
           <>
             <Tag tone="signal">
-              <ShieldCheck className="size-3" /> Training sandbox · modelled lab
+              <ShieldCheck className="size-3" /> Modelled training sandbox · not real Linux
             </Tag>
             <Tag tone={statusMeta.tone}>{statusMeta.label}</Tag>
           </>
@@ -287,7 +287,7 @@ function MissionPage() {
             <div className="flex items-center gap-2 border-b border-border bg-surface-2/70 px-4 py-3">
               <SquareTerminal className="size-4 text-primary" />
               <span className="font-mono text-xs text-muted-foreground">
-                forge training sandbox · modelled lab adapter · no host access
+                modelled sandbox provider (mock-modelled-v1) · isolated Linux adapter not configured · no host access
               </span>
             </div>
             <div ref={logRef} className="scanline max-h-[360px] flex-1 space-y-1 overflow-y-auto p-5 font-mono text-[13px]">
