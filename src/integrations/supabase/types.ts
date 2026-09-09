@@ -56,6 +56,124 @@ export type Database = {
         }
         Relationships: []
       }
+      lab_command_events: {
+        Row: {
+          blocked_reason: string | null
+          challenge_id: string | null
+          created_at: string
+          cwd_after: string
+          cwd_before: string
+          duration_ms: number
+          exit_code: number
+          id: string
+          input: string
+          lab_instance_id: string
+          metadata: Json
+          provider: string
+          state_change_ref: Json
+          stderr: string
+          stdout: string
+          user_id: string
+        }
+        Insert: {
+          blocked_reason?: string | null
+          challenge_id?: string | null
+          created_at?: string
+          cwd_after?: string
+          cwd_before?: string
+          duration_ms?: number
+          exit_code?: number
+          id?: string
+          input: string
+          lab_instance_id: string
+          metadata?: Json
+          provider: string
+          state_change_ref?: Json
+          stderr?: string
+          stdout?: string
+          user_id: string
+        }
+        Update: {
+          blocked_reason?: string | null
+          challenge_id?: string | null
+          created_at?: string
+          cwd_after?: string
+          cwd_before?: string
+          duration_ms?: number
+          exit_code?: number
+          id?: string
+          input?: string
+          lab_instance_id?: string
+          metadata?: Json
+          provider?: string
+          state_change_ref?: Json
+          stderr?: string
+          stdout?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lab_command_events_lab_instance_id_fkey"
+            columns: ["lab_instance_id"]
+            isOneToOne: false
+            referencedRelation: "lab_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lab_instances: {
+        Row: {
+          created_at: string
+          environment_id: string
+          expires_at: string | null
+          id: string
+          lab_id: string
+          last_active_at: string
+          metadata: Json
+          provider: string
+          snapshot_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          environment_id: string
+          expires_at?: string | null
+          id?: string
+          lab_id: string
+          last_active_at?: string
+          metadata?: Json
+          provider?: string
+          snapshot_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          environment_id?: string
+          expires_at?: string | null
+          id?: string
+          lab_id?: string
+          last_active_at?: string
+          metadata?: Json
+          provider?: string
+          snapshot_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lab_instances_lab_id_fkey"
+            columns: ["lab_id"]
+            isOneToOne: false
+            referencedRelation: "learner_labs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lab_world_objects: {
         Row: {
           active: boolean
