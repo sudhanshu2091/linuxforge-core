@@ -1,0 +1,879 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Camera,
+  FolderTree,
+  Pause,
+  Play,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  SquareTerminal,
+  Square,
+  Trash2,
+  X,
+} from "lucide-react";
+import { AppShell } from "@/components/app/AppShell";
+import { Button, PageHeader, Panel } from "@/components/kit/primitives";
+import {
+  closeTerminalSession,
+  createTerminalTicket,
+  runTerminalCommand,
+  sendTerminalInput,
+  sendTerminalSignal,
+  startMission,
+} from "@/lib/forge/engine.functions";
+import { labLifecycle, type LabStatusResult } from "@/lib/forge/sandbox/lab.functions";
+import { SHELLS, type ShellName } from "@/lib/forge/sandbox/contract";
+import type { TerminalLine } from "@/lib/forge/types";
+
+export const Route = createFileRoute("/_authenticated/terminal")({
+  head: () => ({
+    meta: [
+      { title: "Practice Terminal — LinuxForge AI" },
+      { name: "description", content: "A sandboxed multi-shell practice terminal for LinuxForge." },
+    ],
+  }),
+  component: TerminalPage,
+});
+
+type TerminalTab = {
+  id: string;
+  shell: ShellName;
+  cwd: string;
+  lines: TerminalLine[];
+  sessionId: string;
+};
+
+const HISTORY_KEY = "linuxforge:terminal-history:v3";
+const MAX_HISTORY = 500;
+
+const makeTab = (shell: ShellName, index: number): TerminalTab => ({
+  id: `${Date.now()}-${index}-${Math.random().toString(36).slice(2)}`,
+  shell,
+  cwd: "",
+  lines: [],
+  sessionId: crypto.randomUUID(),
+});
+
+function TerminalPage() {
+  const navigate = useNavigate();
+  const [tabs, setTabs] = useState<TerminalTab[]>(() => [makeTab("bash", 0)]);
+  const [activeId, setActiveId] = useState("");
+  const [command, setCommand] = useState("");
+  const [history, setHistory] = useState<string[]>(() => {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(HISTORY_KEY) ?? "[]");
+      return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === "string") : [];
+    } catch {
+      return [];
+    }
+  });
+  const [historyIndex, setHistoryIndex] = useState<number | null>(null);
+  const [running, setRunning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [lab, setLab] = useState<LabStatusResult | null>(null);
+  const [labBusy, setLabBusy] = useState(false);
+  const [showFilesystem, setShowFilesystem] = useState(true);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const outputRef = useRef<HTMLDivElement>(null);
+  const socketRef = useRef<WebSocket | null>(null);
+  const [ptyConnected, setPtyConnected] = useState(false);
+
+  const activeTab = useMemo(
+    () => tabs.find((tab) => tab.id === activeId) ?? tabs[0],
+    [activeId, tabs],
+  );
+
+  useEffect(() => {
+    if (!activeId && tabs[0]) setActiveId(tabs[0].id);
+  }, [activeId, tabs]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const tab = activeTab;
+    if (!tab || !lab?.status.realLinux) {
+      socketRef.current?.close();
+      socketRef.current = null;
+      setPtyConnected(false);
+      return;
+    }
+    socketRef.current?.close();
+    socketRef.current = null;
+    setPtyConnected(false);
+    void createTerminalTicket({
+      data: { sessionId: tab.sessionId, shell: tab.shell, cwd: tab.cwd || "/home/linuxforge" },
+    })
+      .then((ticket) => {
+        if (cancelled) return;
+        const ws = new WebSocket(
+          `${ticket.websocketUrl}?ticket=${encodeURIComponent(ticket.ticket)}`,
+        );
+        socketRef.current = ws;
+        ws.onopen = () => {
+          if (!cancelled) setPtyConnected(true);
+        };
+        ws.onmessage = (event) => {
+          try {
+            const message = JSON.parse(String(event.data)) as {
+              type: string;
+              data?: string;
+              cwd?: string;
+              message?: string;
+            };
+            if (message.type === "output" && message.data) {
+              setTabs((current) =>
+                current.map((item) =>
+                  item.id === tab.id
+                    ? {
+                        ...item,
+                        lines: [...item.lines, { kind: "output", text: message.data ?? "" }],
+                      }
+                    : item,
+                ),
+              );
+            } else if (message.type === "ready" && message.cwd) {
+              setTabs((current) =>
+                current.map((item) =>
+                  item.id === tab.id ? { ...item, cwd: message.cwd ?? item.cwd } : item,
+                ),
+              );
+            } else if (message.type === "error")
+              setError(message.message ?? "Terminal gateway error.");
+          } catch {
+            setError("Invalid terminal gateway response.");
+          }
+        };
+        ws.onclose = () => {
+          if (!cancelled) setPtyConnected(false);
+        };
+        ws.onerror = () => {
+          if (!cancelled) {
+            setPtyConnected(false);
+            setError("Interactive terminal connection failed.");
+          }
+        };
+      })
+      .catch((e) => {
+        if (!cancelled)
+          setError(e instanceof Error ? e.message : "Unable to open interactive terminal.");
+      });
+    return () => {
+      cancelled = true;
+      socketRef.current?.close();
+      socketRef.current = null;
+      setPtyConnected(false);
+    };
+  }, [activeTab?.id, activeTab?.sessionId, activeTab?.shell, lab?.status.realLinux]);
+
+  useEffect(() => {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(-MAX_HISTORY)));
+  }, [history]);
+
+  useEffect(() => {
+    outputRef.current?.scrollTo({ top: outputRef.current.scrollHeight });
+  }, [activeTab?.lines.length]);
+
+  const focusInput = useCallback(() => {
+    window.requestAnimationFrame(() => inputRef.current?.focus());
+  }, []);
+
+  const updateActive = useCallback(
+    (patch: Partial<TerminalTab>) => {
+      setTabs((current) =>
+        current.map((tab) => (tab.id === activeId ? { ...tab, ...patch } : tab)),
+      );
+    },
+    [activeId],
+  );
+
+  const refreshLab = useCallback(
+    async (
+      action:
+        | "get"
+        | "start"
+        | "stop"
+        | "restart"
+        | "reset"
+        | "snapshot"
+        | "pause"
+        | "resume"
+        | "destroy" = "get",
+    ) => {
+      setLabBusy(true);
+      try {
+        const result = await labLifecycle({ data: { action, cwd: activeTab?.cwd ?? "" } });
+        setLab(result);
+        if (result.status.status === "ERROR" || result.status.status === "EXPIRED") {
+          setError(
+            result.error ?? result.status.unavailableReason ?? "Lab environment is unavailable.",
+          );
+        } else if (action !== "get" && result.error) {
+          setError(result.error);
+        }
+        return result;
+      } catch (e) {
+        const message = e instanceof Error ? e.message : "Unable to update the lab.";
+        setError(message);
+        return null;
+      } finally {
+        setLabBusy(false);
+      }
+    },
+    [activeTab?.cwd],
+  );
+
+  useEffect(() => {
+    void refreshLab("get");
+  }, [refreshLab]);
+
+  const execute = useCallback(async () => {
+    if (!activeTab) return;
+    const value = command.trim();
+    if (!value || running) return;
+
+    setRunning(true);
+    setError(null);
+    setCommand("");
+    setHistoryIndex(null);
+    setHistory((current) =>
+      current.at(-1) === value ? current : [...current, value].slice(-MAX_HISTORY),
+    );
+
+    try {
+      const result = await runTerminalCommand({
+        data: {
+          command: value,
+          cwd: activeTab.cwd,
+          shell: activeTab.shell,
+          sessionId: activeTab.sessionId,
+        },
+      });
+      setTabs((current) =>
+        current.map((tab) =>
+          tab.id === activeTab.id
+            ? { ...tab, cwd: result.cwd, lines: [...tab.lines, ...result.transcript] }
+            : tab,
+        ),
+      );
+      setRunning(result.running);
+      void refreshLab("get");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Command failed.");
+    } finally {
+      setRunning(false);
+      focusInput();
+    }
+  }, [activeTab, command, focusInput, running]);
+
+  const newTab = useCallback(
+    (shell: ShellName = activeTab?.shell ?? "bash") => {
+      const tab = makeTab(shell, Date.now());
+      setTabs((current) => [...current, tab]);
+      setActiveId(tab.id);
+      setCommand("");
+      setHistoryIndex(null);
+      setError(null);
+      focusInput();
+    },
+    [activeTab?.shell, focusInput],
+  );
+
+  const closeTab = useCallback(
+    (id: string) => {
+      const closing = tabs.find((tab) => tab.id === id);
+      if (closing) {
+        void closeTerminalSession({ data: { sessionId: closing.sessionId } }).catch(
+          () => undefined,
+        );
+      }
+      setTabs((current) => {
+        if (current.length === 1) return current;
+        const index = current.findIndex((tab) => tab.id === id);
+        const next = current.filter((tab) => tab.id !== id);
+        if (id === activeId) {
+          setActiveId(next[Math.max(0, index - 1)]?.id ?? next[0]?.id ?? "");
+        }
+        return next;
+      });
+      setCommand("");
+      setHistoryIndex(null);
+      setError(null);
+      focusInput();
+    },
+    [activeId, focusInput, tabs],
+  );
+
+  const switchTab = useCallback(
+    (direction: -1 | 1) => {
+      if (tabs.length < 2) return;
+      const index = tabs.findIndex((tab) => tab.id === activeId);
+      const next = tabs[(index + direction + tabs.length) % tabs.length];
+      if (!next) return;
+      setActiveId(next.id);
+      setCommand("");
+      setHistoryIndex(null);
+      setError(null);
+      focusInput();
+    },
+    [activeId, focusInput, tabs],
+  );
+
+  const sendInput = useCallback(
+    async (data: string) => {
+      if (!activeTab || !data) return;
+
+      // A real Kali PTY must receive keyboard input through the browser
+      // WebSocket. The legacy server action is only for the non-PTY path.
+      if (ptyConnected && socketRef.current?.readyState === WebSocket.OPEN) {
+        socketRef.current.send(
+          JSON.stringify({ type: "input", data }),
+        );
+        focusInput();
+        return;
+      }
+
+      try {
+        const result = await sendTerminalInput({
+          data: {
+            data,
+            cwd: activeTab.cwd,
+            shell: activeTab.shell,
+            sessionId: activeTab.sessionId,
+          },
+        });
+        updateActive({ cwd: result.cwd, lines: [...activeTab.lines, ...result.transcript] });
+        setRunning(Boolean(result.running));
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Unable to send terminal input.");
+      }
+      focusInput();
+    },
+    [activeTab, focusInput, ptyConnected, updateActive],
+  );
+
+  const signal = useCallback(
+    async (name: "SIGINT" | "SIGTSTP" | "EOF") => {
+      if (!activeTab) return;
+      try {
+        const result = await sendTerminalSignal({
+          data: {
+            signal: name,
+            cwd: activeTab.cwd,
+            shell: activeTab.shell,
+            sessionId: activeTab.sessionId,
+          },
+        });
+        if (name === "SIGINT") {
+          updateActive({
+            cwd: result.cwd ?? activeTab.cwd,
+            lines: [
+              ...activeTab.lines,
+              { kind: "input", text: "^C" },
+              ...(result.transcript ?? []),
+            ],
+          });
+          setRunning(Boolean(result.running));
+          setCommand("");
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Unable to send terminal signal.");
+      }
+      focusInput();
+    },
+    [activeTab, focusInput, updateActive],
+  );
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const mod = event.metaKey || event.ctrlKey;
+      const key = event.key.toLowerCase();
+      const target = event.target;
+      const inputFocused = target === inputRef.current;
+      const selection = window.getSelection();
+      const hasOutputSelection = Boolean(
+        selection && !selection.isCollapsed && outputRef.current?.contains(selection.anchorNode),
+      );
+
+      // Native copy must remain available when the learner has selected terminal output.
+      if (mod && key === "c" && hasOutputSelection) return;
+
+      if (ptyConnected && inputFocused && !mod && event.key === "Enter") {
+        event.preventDefault();
+        void sendInput("\r");
+        return;
+      }
+      if (ptyConnected && inputFocused && !mod) {
+        const special: Record<string, string> = {
+          ArrowUp: "\x1b[A",
+          ArrowDown: "\x1b[B",
+          ArrowRight: "\x1b[C",
+          ArrowLeft: "\x1b[D",
+          Home: "\x1b[H",
+          End: "\x1b[F",
+          Delete: "\x1b[3~",
+          PageUp: "\x1b[5~",
+          PageDown: "\x1b[6~",
+          Backspace: "\x7f",
+          Escape: "\x1b",
+        };
+        const bytes = special[event.key] ?? (event.key.length === 1 ? event.key : "");
+        if (bytes) {
+          event.preventDefault();
+          void sendInput(bytes);
+          return;
+        }
+      }
+
+      if (mod && event.shiftKey && key === "t") {
+        event.preventDefault();
+        newTab();
+        return;
+      }
+      if (mod && event.shiftKey && key === "w") {
+        event.preventDefault();
+        if (activeTab) closeTab(activeTab.id);
+        return;
+      }
+      if (mod && event.key === "PageUp") {
+        event.preventDefault();
+        switchTab(-1);
+        return;
+      }
+      if (mod && event.key === "PageDown") {
+        event.preventDefault();
+        switchTab(1);
+        return;
+      }
+      if (mod && key === "l") {
+        event.preventDefault();
+        if (running) void sendInput("\x0c");
+        else updateActive({ lines: [] });
+        focusInput();
+        return;
+      }
+      if (mod && key === "c") {
+        // If a command is executing, Ctrl/Cmd+C is an interrupt. Otherwise it
+        // behaves like a shell line cancel without breaking native copy.
+        event.preventDefault();
+        if (running) void signal("SIGINT");
+        else setCommand("");
+        return;
+      }
+      if (mod && key === "u" && inputFocused) {
+        event.preventDefault();
+        setCommand("");
+        return;
+      }
+      if (mod && key === "k" && inputFocused) {
+        event.preventDefault();
+        const el = inputRef.current;
+        if (el) setCommand((value) => value.slice(0, el.selectionStart ?? value.length));
+        return;
+      }
+      if (mod && key === "a" && inputFocused) {
+        event.preventDefault();
+        inputRef.current?.setSelectionRange(0, 0);
+        return;
+      }
+      if (mod && key === "e" && inputFocused) {
+        event.preventDefault();
+        const length = command.length;
+        inputRef.current?.setSelectionRange(length, length);
+        return;
+      }
+      if (mod && key === "d" && inputFocused && !command) {
+        event.preventDefault();
+        void signal("EOF");
+        return;
+      }
+
+      if (!inputFocused) return;
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        if (!history.length) return;
+        const next = historyIndex === null ? history.length - 1 : Math.max(0, historyIndex - 1);
+        setHistoryIndex(next);
+        setCommand(history[next] ?? "");
+      } else if (event.key === "ArrowDown") {
+        event.preventDefault();
+        if (historyIndex === null) return;
+        const next = historyIndex + 1;
+        if (next >= history.length) {
+          setHistoryIndex(null);
+          setCommand("");
+        } else {
+          setHistoryIndex(next);
+          setCommand(history[next] ?? "");
+        }
+      } else if (event.key === "Tab") {
+        // Real shell completion is intentionally deferred to the PTY provider.
+        event.preventDefault();
+      } else if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        void execute();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [
+    activeTab,
+    closeTab,
+    command,
+    execute,
+    focusInput,
+    history,
+    historyIndex,
+    newTab,
+    ptyConnected,
+    running,
+    sendInput,
+    signal,
+    switchTab,
+    updateActive,
+  ]);
+
+  if (!activeTab) return null;
+
+  return (
+    <AppShell>
+      <PageHeader
+        eyebrow="Practice terminal"
+        title="LinuxForge Lab Terminal"
+        description="Multi-tab bash, zsh and sh sessions. Real Linux labs use an authenticated browser PTY gateway; development QEMU stays behind the runtime boundary."
+      />
+      <div className="mb-3 grid gap-3 lg:grid-cols-[1fr_auto]">
+        <Panel className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span
+              className={`size-2 rounded-full ${lab?.status.available ? (lab.status.status === "ERROR" || lab.status.status === "EXPIRED" ? "bg-destructive" : "bg-signal") : "bg-muted-foreground"}`}
+            />
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+                Lab environment
+              </p>
+              <p className="text-sm font-semibold">{lab?.status.status ?? "CONNECTING"}</p>
+            </div>
+          </div>
+          <span className="rounded border border-border bg-surface-2 px-2 py-1 font-mono text-[11px] text-muted-foreground">
+            {lab?.status.label ?? "Sandbox"}
+          </span>
+          <span className="rounded border border-border bg-surface-2 px-2 py-1 font-mono text-[11px] text-muted-foreground">
+            network: {lab?.status.limits.network ?? "none"}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {lab?.status.realLinux ? "isolated Linux runtime" : "modelled training runtime"}
+          </span>
+          <div className="ml-auto flex flex-wrap gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={labBusy}
+              onClick={() => void refreshLab("start")}
+              title="Start or resume lab"
+            >
+              <Play className="size-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={labBusy}
+              onClick={() => void refreshLab("stop")}
+              title="Stop lab"
+            >
+              <Square className="size-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={labBusy}
+              onClick={() => void refreshLab("restart")}
+              title="Restart lab"
+            >
+              <RefreshCw className="size-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={labBusy}
+              onClick={() => void refreshLab("pause")}
+              title="Pause lab"
+            >
+              <Pause className="size-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={labBusy}
+              onClick={() => void refreshLab("reset")}
+              title="Reset lab"
+            >
+              <RotateCcw className="size-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={labBusy}
+              onClick={() => void refreshLab("snapshot")}
+              title="Create snapshot"
+            >
+              <Camera className="size-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={labBusy}
+              onClick={() => void refreshLab("destroy")}
+              title="Destroy lab"
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={labBusy}
+              onClick={() => void refreshLab("get")}
+              title="Refresh lab state"
+            >
+              <RefreshCw className={`size-3.5 ${labBusy ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
+        </Panel>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-full"
+          onClick={() => setShowFilesystem((value) => !value)}
+        >
+          <FolderTree className="size-3.5" />{" "}
+          {showFilesystem ? "Hide filesystem" : "Show filesystem"}
+        </Button>
+      </div>
+
+      <div
+        className={`grid min-h-[680px] gap-3 ${showFilesystem ? "lg:grid-cols-[minmax(0,1fr)_280px]" : "grid-cols-1"}`}
+      >
+        <Panel padded={false} className="flex min-h-[680px] flex-col overflow-hidden">
+          <div className="flex items-center gap-1 overflow-x-auto border-b border-border bg-surface-2/70 px-2 pt-2">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => {
+                  setActiveId(tab.id);
+                  setCommand("");
+                  setHistoryIndex(null);
+                  setError(null);
+                  focusInput();
+                }}
+                className={`group flex min-w-[150px] items-center gap-2 rounded-t-lg border border-b-0 px-3 py-2 text-left font-mono text-xs ${
+                  tab.id === activeId ? "bg-background text-foreground" : "text-muted-foreground"
+                }`}
+              >
+                <SquareTerminal className="size-3.5" />
+                <span className="flex-1">{tab.shell}</span>
+                {tabs.length > 1 && (
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      closeTab(tab.id);
+                    }}
+                    className="opacity-60 hover:opacity-100"
+                    aria-label={`Close ${tab.shell} tab`}
+                  >
+                    <X className="size-3.5" />
+                  </span>
+                )}
+              </button>
+            ))}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => newTab()}
+              aria-label="New terminal tab"
+            >
+              <Plus className="size-4" />
+            </Button>
+            <select
+              value={activeTab.shell}
+              onChange={(event) =>
+                updateActive({
+                  shell: event.target.value as ShellName,
+                  sessionId: crypto.randomUUID(),
+                })
+              }
+              className="ml-auto mr-2 rounded border border-border bg-background px-2 py-1 font-mono text-xs"
+              aria-label="Shell"
+            >
+              {SHELLS.map((shell) => (
+                <option key={shell} value={shell}>
+                  {shell}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-3 border-b border-border bg-surface-2/40 px-4 py-2 text-xs text-muted-foreground">
+            <span className="font-mono">
+              {activeTab.shell} · {activeTab.cwd || "~"}
+            </span>
+            <span className="rounded border border-border px-2 py-0.5">
+              {ptyConnected
+                ? "REAL KALI PTY"
+                : lab?.status.realLinux
+                  ? "CONNECTING PTY"
+                  : "MODELLED SANDBOX"}
+            </span>
+            <span className="ml-auto hidden sm:inline">
+              ↑↓ history · Ctrl/Cmd+C interrupt · Ctrl/Cmd+Shift+T new tab · Ctrl/Cmd+L clear
+            </span>
+          </div>
+
+          <div
+            ref={outputRef}
+            onClick={focusInput}
+            className="scanline flex-1 overflow-y-auto p-5 font-mono text-[13px] leading-relaxed select-text"
+            aria-label="Terminal output"
+          >
+            {activeTab.lines.length === 0 ? (
+              <p className="text-muted-foreground">
+                Fresh {activeTab.shell} session. Previous commands are available with ↑.
+              </p>
+            ) : (
+              activeTab.lines.map((line, i) => (
+                <p
+                  key={`${activeTab.id}-${i}`}
+                  className={
+                    line.kind === "error"
+                      ? "text-destructive whitespace-pre-wrap"
+                      : line.kind === "input"
+                        ? "text-foreground whitespace-pre-wrap"
+                        : "text-muted-foreground whitespace-pre-wrap"
+                  }
+                >
+                  {line.text}
+                </p>
+              ))
+            )}
+            {error && <p className="text-destructive whitespace-pre-wrap">{error}</p>}
+          </div>
+
+          <div className="border-t border-border p-3">
+            <div className="flex items-start gap-2">
+              <span className="mt-2 font-mono text-xs text-signal whitespace-nowrap">
+                learner@forge:{activeTab.cwd || "~"}$
+              </span>
+              <textarea
+                key={activeTab.id}
+                ref={inputRef}
+                autoFocus
+                rows={1}
+                value={ptyConnected ? "" : command}
+                onPaste={(event) => {
+                  if (ptyConnected && socketRef.current?.readyState === WebSocket.OPEN) {
+                    event.preventDefault();
+                    socketRef.current.send(
+                      JSON.stringify({ type: "input", data: event.clipboardData.getData("text") }),
+                    );
+                  }
+                }}
+                onChange={(event) => {
+                  if (!running && !ptyConnected) {
+                    setCommand(event.target.value);
+                    setHistoryIndex(null);
+                  } else {
+                    setCommand("");
+                  }
+                }}
+                placeholder={
+                  ptyConnected
+                    ? "Connected to real Kali PTY — type directly…"
+                    : running
+                      ? "Interactive process running — type directly…"
+                      : `Type a ${activeTab.shell} command…`
+                }
+                className="min-h-10 max-h-40 flex-1 resize-none overflow-auto bg-transparent py-2 font-mono text-sm outline-none"
+                aria-label="Terminal command"
+                spellCheck={false}
+                autoCapitalize="off"
+                autoCorrect="off"
+              />
+              <Button
+                size="sm"
+                disabled={running || !command.trim()}
+                onClick={() => void execute()}
+              >
+                <Play className="size-3.5" /> {running ? "Running…" : "Run"}
+              </Button>
+            </div>
+          </div>
+        </Panel>
+
+        {showFilesystem && (
+          <Panel className="min-h-[680px] overflow-hidden">
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+                  Observed filesystem
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Persisted lab state · read-only view
+                </p>
+              </div>
+              <FolderTree className="size-4 text-accent" />
+            </div>
+            <div className="max-h-[610px] space-y-1 overflow-y-auto pr-1 font-mono text-[11px]">
+              {(lab?.filesystem.objects ?? []).map((object) => (
+                <div
+                  key={object.objectId}
+                  className="rounded border border-border/60 bg-surface-2/40 px-2 py-1.5"
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={
+                        object.objectType === "directory" ? "text-accent" : "text-muted-foreground"
+                      }
+                    >
+                      {object.objectType === "directory" ? "d" : "f"}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-foreground">{object.path}</span>
+                    <span className="text-muted-foreground">{object.permissions}</span>
+                  </div>
+                </div>
+              ))}
+              {!lab?.filesystem.objects.length && (
+                <p className="py-8 text-center text-muted-foreground">No observed entries yet.</p>
+              )}
+            </div>
+            {lab?.snapshotId && (
+              <div className="mt-3 rounded border border-border bg-surface-2/50 p-2 font-mono text-[10px] text-muted-foreground">
+                snapshot: <span className="text-foreground">{lab.snapshotId}</span>
+              </div>
+            )}
+          </Panel>
+        )}
+      </div>
+
+      <div className="mt-3 flex justify-between text-xs text-muted-foreground">
+        <span>
+          History is shared between tabs; each tab has its own PTY session, transcript and working
+          directory.
+        </span>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() =>
+            void startMission({ data: {} }).then((res) =>
+              navigate({ to: "/mission", search: { c: res.challengeId } }),
+            )
+          }
+        >
+          Open mission
+        </Button>
+      </div>
+    </AppShell>
+  );
+}

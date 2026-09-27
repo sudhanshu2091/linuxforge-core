@@ -1,0 +1,43 @@
+services:
+  kali-lab:
+    build: .
+    restart: unless-stopped
+
+    environment:
+      SANDBOX_TOKEN: ${FORGE_SANDBOX_CREDENTIAL:?set FORGE_SANDBOX_CREDENTIAL}
+      SANDBOX_RUNTIME_MODE: development
+      SANDBOX_RUNTIME_CLASS: container-dev
+      SANDBOX_RUNTIME_VERSION: dev-docker-proot-v15
+
+    networks:
+      - lab
+
+    read_only: false
+
+    cap_drop:
+      - ALL
+
+    security_opt:
+      - no-new-privileges:true
+
+    pids_limit: 64
+    mem_limit: 512m
+    cpus: 0.5
+
+    # Learner state is stored only in the per-environment registry volume.
+    # /home/learner is intentionally NOT a Docker volume: PRoot maps each
+    # logical environment to its own isolated directory there.
+    volumes:
+      - kali-snapshots:/var/lib/linuxforge-snapshots
+      - kali-environments:/var/lib/linuxforge-environments
+
+    ports:
+      - "18080:8080"
+
+networks:
+  lab:
+    internal: true
+
+volumes:
+  kali-snapshots:
+  kali-environments:

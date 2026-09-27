@@ -1,0 +1,94 @@
+# ============================================================
+# LinuxForge Core — Repository Ignore Policy
+# ============================================================
+
+# ------------------------------------------------------------
+# Dependencies — reproducible from lockfiles
+# ------------------------------------------------------------
+node_modules/
+.pnpm-store/
+.yarn/
+.yarn/cache/
+.yarn/install-state.gz
+
+# ------------------------------------------------------------
+# Build / generated application output
+# ------------------------------------------------------------
+dist/
+dist-ssr/
+.output/
+.vinxi/
+.tanstack/
+.nitro/
+.cache/
+coverage/
+
+# ------------------------------------------------------------
+# LinuxForge local runtime state
+# IMPORTANT: VM disks, snapshots, runtime state and local
+# QEMU artifacts must never enter application source control.
+# ------------------------------------------------------------
+.linuxforge-runtime/
+
+# ------------------------------------------------------------
+# Environment / secrets
+# ------------------------------------------------------------
+.env
+.env.local
+.env.*.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+
+# Keep the safe template
+!.env.example
+
+# ------------------------------------------------------------
+# Logs / temporary files
+# ------------------------------------------------------------
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ------------------------------------------------------------
+# Wrangler / Cloudflare local configuration
+# ------------------------------------------------------------
+.wrangler/
+.dev.vars
+
+# ------------------------------------------------------------
+# macOS
+# ------------------------------------------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ------------------------------------------------------------
+# Editors / IDEs
+# ------------------------------------------------------------
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ------------------------------------------------------------
+# Temporary / local archives
+# ------------------------------------------------------------
+*.tmp
+*.temp
+
+# Python generated files
+__pycache__/
+*.py[cod]
+*$py.class
